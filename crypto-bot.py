@@ -57,3 +57,12 @@ print(response.json())
 CRYPTO_CURRENT_VALUE = requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result')
 
 print(CRYPTO_CURRENT_VALUE)
+
+if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
+    DIFFERENCE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
+    print("Oversold! Seller aare greater then buyer ! please add buyer proportion to difference !")
+    print("buy! buy! buy!")
+if CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
+    DIFFERENCE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
+    print("Overbought! Buyer are greater than seller ! please sell your coins proportion to difference !")
+    print("sell! sell! sell!")
