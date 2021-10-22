@@ -4,6 +4,7 @@ from pathlib import Path
 import os
 import dotenv
 import mysql.connector
+from pprint import pprint
 
 mydb = mysql.connector.connect(host="localhost", user="root", passwd="1234")
 
@@ -53,7 +54,40 @@ if (PARAMS or PARAMS2) is None or (PARAMS or PARAMS2 == ""):
     get_params()
     
 
+def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE):
+    global INPUT_LOWER_RANGE, INPUT_UPPER_RANGE
+    INPUT_UPPER_RANGE = upper_range
+    INPUT_LOWER_RANGE = lower_range
+    CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
+    if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE or CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
+        raise Exception("Range should be bounded to crypto current value")
 
+
+
+def get_account_status():
+    response = requests.post(BALANCE_QUERY, data=PARAMS2)
+    pprint(response.json())
+
+
+class Order():
+    __init__():
+        pass
+    
+    def sell():
+        pass
+    
+    def buy():
+        pass
+    
+    def order_cancel():
+        pass
+
+    def bulk_cancel():
+        pass
+
+    def order_status():
+        pass
+    
 
 
 
@@ -71,18 +105,20 @@ CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.l
 print(CRYPTO_CURRENT_VALUE)
 
 if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
-    DIFFERENCE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
+    DECREASE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
+    INCREASE = 0
     print("Oversold! Seller aare greater then buyer ! please add buyer proportion to difference !")
     print("buy! buy! buy!")
     # Selling logic ( like after we bought a batch our bot will continue to buy the coins cause still the price is higher for few seconds will be a huge problem )
-    print(DIFFERENCE)
+    print(DECREASE)
     
-if CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
-    DIFFERENCE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
+elif CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
+    INCREASE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
+    DECREASE = 0
     print("Overbought! Buyer are greater than seller ! please sell your coins proportion to difference !")
     print("sell! sell! sell!")
     # Selling logic ( like after we sold a batch our bot will continue to sell the coins cause still the price is lower for few seconds will be a huge problem )
-    print(DIFFERENCE)
+    print(INCREASE)
     
     
 # time ,open, close, high, low ,volume, deal, market  
