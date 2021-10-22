@@ -36,8 +36,8 @@ SIGN.digest()
 
 SIGN = str(SIGN.hexdigest()).upper()
 
+PARAM2 = f"api_key={API_KEY}&assets={ASSETS}&sign={SIGN}"
 PARAMS = "api_key={}&sign={}&assets={}".format(API_KEY, SIGN, ASSETS)
-
 
 INPUT_LOWER_RANGE = 1.15131
 INPUT_UPPER_RANGE = 1.15129
@@ -45,7 +45,7 @@ INPUT_UPPER_RANGE = 1.15129
 
 
 
-response = requests.get("{}&market=CTS/USDT".format(MARKET_LAST), data=PARAMS)
+response = requests.get("{}?market=CTS/USDT".format(MARKET_LAST), data=PARAMS)
 print(response)
 
 print(response.content)
@@ -54,7 +54,7 @@ print(response.json())
 
 
 
-CRYPTO_CURRENT_VALUE = requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result')
+CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
 
 print(CRYPTO_CURRENT_VALUE)
 
@@ -62,7 +62,24 @@ if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
     DIFFERENCE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
     print("Oversold! Seller aare greater then buyer ! please add buyer proportion to difference !")
     print("buy! buy! buy!")
+    print(DIFFERENCE)
+    
 if CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
     DIFFERENCE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
     print("Overbought! Buyer are greater than seller ! please sell your coins proportion to difference !")
     print("sell! sell! sell!")
+    print(DIFFERENCE)
+    
+    
+# time ,open, close, high, low ,volume, deal, market  
+response = requests.get("https://api.hotbit.io/api/v1/market.kline?market=CTS/USDT&start_time=1634887815&end_time=1634887841&interval=60")
+print(response.content)
+
+# all the data about CTS
+response = requests.get("https://api.hotbit.io/api/v1/market.status?market=CTS/USDT&period=10")
+print(response.content)
+
+
+#A account status of user
+response = requests.post("https://api.hotbit.io/api/v1/balance.query", data=PARAM2)
+print(response.content)
