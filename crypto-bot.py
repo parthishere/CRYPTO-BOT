@@ -74,12 +74,14 @@ if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
     DIFFERENCE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
     print("Oversold! Seller aare greater then buyer ! please add buyer proportion to difference !")
     print("buy! buy! buy!")
+    # Selling logic ( like after we bought a batch our bot will continue to buy the coins cause still the price is higher for few seconds will be a huge problem )
     print(DIFFERENCE)
     
 if CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
     DIFFERENCE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
     print("Overbought! Buyer are greater than seller ! please sell your coins proportion to difference !")
     print("sell! sell! sell!")
+    # Selling logic ( like after we sold a batch our bot will continue to sell the coins cause still the price is lower for few seconds will be a huge problem )
     print(DIFFERENCE)
     
     
