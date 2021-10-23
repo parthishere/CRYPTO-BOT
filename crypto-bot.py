@@ -70,8 +70,7 @@ def get_account_status():
 
 
 class Order():
-    __init__():
-        pass
+    
     
     def sell():
         pass
@@ -87,7 +86,7 @@ class Order():
 
     def order_status():
         pass
-    
+
 
 
 
