@@ -5,6 +5,7 @@ import os
 import dotenv
 import mysql.connector
 from pprint import pprint
+import settings
 
 mydb = mysql.connector.connect(host="localhost", user="root", passwd="1234")
 
@@ -62,64 +63,81 @@ def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE
     if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE or CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
         raise Exception("Range should be bounded to crypto current value")
 
+def get_server_time():
+    return requests.get(SERVER_TIME).json()
 
-
-def get_account_status():
-    response = requests.post(BALANCE_QUERY, data=PARAMS2)
-    pprint(response.json())
 
 class Account():
+    
     def __init__(self):
         pass
 
     def get_account_status(self):
         pass
     
-    def get_balance_history(self):
+    def get_balance_history(self, business, start_time, end_time, offset, limit):
+        '''
+        | Name of Method | Type of Method | Description |
+        | balance.history | post  | Obtain the records regarding the changes in user assets |
+        '''
+        
         parameter_for_history = "api_key={}&sign={}&assets={}&business={}&start_time={}&end_time={}&offset={}&limit={}"
-        response = requests.post(BALANCE_HISTORY, data=parameter_for_history)
+        response = requests.post(BALANCE_HISTORY, data=parameter_for_history )
         return response.json()
 
     def get_balance_query(self):
+        '''
+        | Name of Method | Type of Method | Description |
+        | balance.query | post  | Obtain User Assets |  
+        '''
+
         response = requests.post(BALANCE_QUERY, data=PARAMS)
         return response.json()
 
 
+
 class Order():
+    
     def __init__(self):
         pass
-    
     
     def check_market_open(self):
         resopose = requests.get()
     
     def sell(self):
-        params = "api_key={}&sign={}&market={}&side={}&amaount={}&price={}&isfee={}"
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
     
     def buy(self):
-        params = "api_key={}&sign={}&market={}&side={}&amaount={}&price={}&isfee={}"
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
     
-    def order_cancel(self):
+    def order_cancel(self, order_id):
         params = "api_key={}&sign={}&market={}&order_id={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.cancel", data=params)
 
-    def bulk_cancel(self):
+    def bulk_cancel(self, orders_id):
         params = "api_key={}&sign={}&market={}&orders_id={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.batch_cancel", data=params)
 
-    def order_deals(self):
+    def order_detail(self, order_id, offset=settings.OFFSET):
         params = "api_key={}&sign={}&market={}&orders_id={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.deals", data=params)
     
-    def order_status(self):
-        pass
+    def order_status(self, order_id):
+        if requests.post("https://api.hotbit.io/api/v1/order.finished_detail"):
+            return "Finished"
+        if requests.post("https://api.hotbit.io/api/v1/order.pending"):
+            return "Pending"
     
     def check_pending_orders(self):
         params = "api_key={}&sign={}&market={}&orders_id={}"
         response = requests.post("https://api.hotbit.io/api/v1/order.pending", data=params)
         
+    def order_finished(self):
+        params = None
+        reponse = requests.post("https://api.hotbit.io/api/v1/order.finished", data=params)
+           
         
         
 class Market():
@@ -127,10 +145,35 @@ class Market():
     def __init__(self):
         pass
 
-    def market_status(self):
-        pass
+    def market_status_today(self):
+        crypto = "CTS"
+        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market=CTS/USDT")
+        return response.json()
+   
+ 
+    def market_summery(self):
+        crypto = "CTS/USDT"
+        response = requests.get("https://api.hotbit.io/api/v1/market.summary?markets=CTS/USDT")
+        return response.json()
+  
+    
+    def market_status_24h(self):
+        crypto="CTS/USDT"
+        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market=CTS/USDT")
+        return response.json()
 
 
+    def market_kline(self):
+        crypto = "CTS/USDT"
+        start_time = 0
+        end_time = 0
+        response = requests.get("https://api.hotbit.io/api/v1/market.kline?market=ETH/BTC&start_time=1521100000&end_time=1521101193&interval=60") 
+        return response.json()
+    
+    def market_last_value(self, market=settings.MARKET):
+        params = None
+        reponse = requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS)
+        return reponse.json()
 
 
 response = requests.get("{}?market=CTS/USDT".format(MARKET_LAST), data=PARAMS)
