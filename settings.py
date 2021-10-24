@@ -1,0 +1,1 @@
+CRYPTO_MARKET = ["CTS/USDT"]

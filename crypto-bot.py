@@ -68,23 +68,66 @@ def get_account_status():
     response = requests.post(BALANCE_QUERY, data=PARAMS2)
     pprint(response.json())
 
+class Account():
+    def __init__(self):
+        pass
+
+    def get_account_status(self):
+        pass
+    
+    def get_balance_history(self):
+        parameter_for_history = "api_key={}&sign={}&assets={}&business={}&start_time={}&end_time={}&offset={}&limit={}"
+        response = requests.post(BALANCE_HISTORY, data=parameter_for_history)
+        return response.json()
+
+    def get_balance_query(self):
+        response = requests.post(BALANCE_QUERY, data=PARAMS)
+        return response.json()
+
 
 class Order():
-    
-    
-    def sell():
+    def __init__(self):
         pass
     
-    def buy():
+    
+    def check_market_open(self):
+        resopose = requests.get()
+    
+    def sell(self):
+        params = "api_key={}&sign={}&market={}&side={}&amaount={}&price={}&isfee={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
+    
+    def buy(self):
+        params = "api_key={}&sign={}&market={}&side={}&amaount={}&price={}&isfee={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
+    
+    def order_cancel(self):
+        params = "api_key={}&sign={}&market={}&order_id={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.cancel", data=params)
+
+    def bulk_cancel(self):
+        params = "api_key={}&sign={}&market={}&orders_id={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.batch_cancel", data=params)
+
+    def order_deals(self):
+        params = "api_key={}&sign={}&market={}&orders_id={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.deals", data=params)
+    
+    def order_status(self):
         pass
     
-    def order_cancel():
+    def check_pending_orders(self):
+        params = "api_key={}&sign={}&market={}&orders_id={}"
+        response = requests.post("https://api.hotbit.io/api/v1/order.pending", data=params)
+        
+        
+        
+class Market():
+    
+    def __init__(self):
         pass
 
-    def bulk_cancel():
-        pass
-
-    def order_status():
+    def market_status(self):
         pass
 
 
