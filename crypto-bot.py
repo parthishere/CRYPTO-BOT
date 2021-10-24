@@ -50,11 +50,6 @@ def get_params():
     PARAMS = "api_key={}&sign={}&assets={}".format(API_KEY, SIGN, ASSETS)
 
 
-if (PARAMS or PARAMS2) is None or (PARAMS or PARAMS2 == ""):
-    print('getting params')
-    get_params()
-    
-
 def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE):
     global INPUT_LOWER_RANGE, INPUT_UPPER_RANGE
     INPUT_UPPER_RANGE = upper_range
@@ -174,6 +169,14 @@ class Market():
         params = None
         reponse = requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS)
         return reponse.json()
+
+
+
+
+if (PARAMS or PARAMS2) is None or (PARAMS or PARAMS2 == ""):
+    print('getting params')
+    get_params()
+    
 
 
 response = requests.get("{}?market=CTS/USDT".format(MARKET_LAST), data=PARAMS)

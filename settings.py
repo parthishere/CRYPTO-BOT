@@ -1,4 +1,12 @@
 import os
+import dotenv
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent
+print(BASE_DIR)
+dotenv_file = os.path.join(BASE_DIR, ".env")
+if os.path.isfile(dotenv_file):
+    dotenv.load_dotenv(dotenv_file)
 
 SECRET_KEY = os.environ['secret_key']
 API_KEY = os.environ['api_key']
@@ -7,6 +15,7 @@ ASSETS = os.environ['assets']
 
 CRYPTO_MARKET = ["CTS/USDT"]
 CRYPTO_NAME = "CTS"
+MARKET = "CTS"
 
 INPUT_LOWER_RANGE = 1.15131
 INPUT_UPPER_RANGE = 1.151
