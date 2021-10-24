@@ -13,10 +13,6 @@ API_KEY = os.environ['api_key']
 ASSETS = os.environ['assets']
 
 
-CRYPTO_MARKET = ["CTS/USDT"]
-CRYPTO_NAME = "CTS"
-MARKET = "CTS"
-
 INPUT_LOWER_RANGE = 1.15131
 INPUT_UPPER_RANGE = 1.151
 
@@ -32,7 +28,13 @@ MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h"
 MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary"
 
 
+ASSETS = ["CTS/USDT"]
+ASSET = "CTS"
+MARJET = "CTS/USDT"
+
 TIMEZONE = 'IST'
-OFFSET = ""
-LIMIT = None
+DEFAULT_BUSINESS= "deposit"
+OFFSET = 0
+LIMIT = 0
 INTERVAL = 1
+ISFEE = 0

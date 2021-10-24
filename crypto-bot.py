@@ -1,9 +1,5 @@
-import requests
-import hashlib
+import requests, hashlib, datetime, time, dotnet, os, mysql.connector
 from pathlib import Path
-import os
-import dotenv
-import mysql.connector
 from pprint import pprint
 import settings
 
@@ -13,12 +9,25 @@ SERVER_TIME = "https://api.hotbit.io/api/v1/server.time"
 BALANCE_QUERY = "https://api.hotbit.io/api/v1/balance.query"
 BALANCE_HISTORY = "https://api.hotbit.io/api/v1/balance.history"
 ASSETS_LIST = "https://api.hotbit.io/api/v1/asset.list"
-MARKET_LIST = "https://api.hotbit.io/api/v1/market.list"
-MARKET_LAST = "https://api.hotbit.io/api/v1/market.last"
-USER_DEALS = "https://api.hotbit.io/api/v1/market.user_deals"
-STATUS_TODAY = "https://api.hotbit.io/api/v1/market.status_today"
-MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h"
-MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary"
+
+ORDER_PUT_LIMIT = "https://api.hotbit.io/api/v1/order.put_limit" # Limit Order Transaction
+ORDER_CANCEL = "https://api.hotbit.io/api/v1/order.cancel" # Cancel Transaction
+ORDER_BULK_CANCEL = "https://api.hotbit.io/api/v1/order.batch_cancel" # Cancel transactions in large quantities
+ORDER_DEALS = "https://api.hotbit.io/api/v1/order.deals" # Obtain the details of settled orders
+ORDER_FINISHED_DETAIL = "https://api.hotbit.io/api/v1/order.finished_detail" # Check finished orders according to order number
+ORDER_BOOK = "https://api.hotbit.io/api/v1/order.book" # Have to add parameters see doc! # obtain list of transaction
+ORDER_PENDING = "https://api.hotbit.io/api/v1/order.pending" # CHECK UNEXECUTED ORDERS
+
+MARKET_LIST = "https://api.hotbit.io/api/v1/market.list" # Obtain the list of transaction pairs
+MARKET_LAST = "https://api.hotbit.io/api/v1/market.last" # have to add paramer # obtain the latest price of designated transaction pair
+USER_DEALS = "https://api.hotbit.io/api/v1/market.user_deals" # check the user's transaction records
+MARKET_KLINE = "https://api.hotbit.io/api/v1/market.kline" # Parameters required # Check K Chart
+MARKET_STATUS = "https://api.hotbit.io/api/v1/market.status" # obtain the latest status of the market during the designated period of time in the past,l such as latest range of increase and decline, trading volume, highest/lowest price etc. # para required
+MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h" # obtain today's market status 
+MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary" # market summary
+
+ALLTICKER = "https://api.hotbit.io/api/v1/allticker" # obtain the latest trading informnation of all transaction pairs in the market
+ 
 
 INPUT_LOWER_RANGE = 1.15131
 INPUT_UPPER_RANGE = 1.15129
@@ -61,6 +70,12 @@ def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE
 def get_server_time():
     return requests.get(SERVER_TIME).json()
 
+def get_epoch_time(year, month, day, hours, minutes, seconds):
+    epoch_time = datetime.datetime(year, month, day, hours, seconds).timestamp()
+    return epoch_time
+
+def get_epoch_now():
+    time.localtime().tm_sec
 
 class Account():
     
@@ -75,8 +90,9 @@ class Account():
         | Name of Method | Type of Method | Description |
         | balance.history | post  | Obtain the records regarding the changes in user assets |
         '''
-        
-        parameter_for_history = "api_key={}&sign={}&assets={}&business={}&start_time={}&end_time={}&offset={}&limit={}"
+        if not business:
+            business="deposit"
+        parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, SIGN, settings.ASSET, business, start_time, end_time, offset, limit)
         response = requests.post(BALANCE_HISTORY, data=parameter_for_history )
         return response.json()
 
@@ -85,8 +101,8 @@ class Account():
         | Name of Method | Type of Method | Description |
         | balance.query | post  | Obtain User Assets |  
         '''
-
-        response = requests.post(BALANCE_QUERY, data=PARAMS)
+        parameter = "api_key={}&sign={}&assets={}".format(settings.API_KEY, SIGN, settings.ASSETS)
+        response = requests.post(BALANCE_QUERY, data=parameter)
         return response.json()
 
 
@@ -99,25 +115,27 @@ class Order():
     def check_market_open(self):
         resopose = requests.get()
     
-    def sell(self):
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
+    def sell(self, amount=0, price=0):
+        side = 1 # 1 for sell and 2 for buy
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, SIGN, side, amount, price, settings.ISFEE)
+        response = requests.post(ORDER_PUT_LIMIT, data=params)
     
-    def buy(self):
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.put_limit", data=params)
+    def buy(self, amount=0, price=0):
+        side = 2 # 1 for sell and 2 for buy
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, SIGN, side, amount, price, settings.ISFEE)
+        response = requests.post(ORDER_PUT_LIMIT, data=params)
     
-    def order_cancel(self, order_id):
-        params = "api_key={}&sign={}&market={}&order_id={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.cancel", data=params)
+    def order_cancel(self, order_id=0):
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, SIGN, settings.MARKET, order_id)
+        response = requests.post(ORDER_CANCEL, data=params)
 
-    def bulk_cancel(self, orders_id):
-        params = "api_key={}&sign={}&market={}&orders_id={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.batch_cancel", data=params)
+    def bulk_cancel(self, orders_id=[0]):
+        params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, SIGN, settings.MARKET, orders_id)
+        response = requests.post(ORDER_BULK_CANCEL, data=params)
 
-    def order_detail(self, order_id, offset=settings.OFFSET):
-        params = "api_key={}&sign={}&market={}&orders_id={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.deals", data=params)
+    def order_detail(self, order_id=0, offset=settings.OFFSET):
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, SIGN, settings.MARKET, order_id)
+        response = requests.post(ORDER_DEALS, data=params)
     
     def order_status(self, order_id):
         if requests.post("https://api.hotbit.io/api/v1/order.finished_detail"):
@@ -125,12 +143,12 @@ class Order():
         if requests.post("https://api.hotbit.io/api/v1/order.pending"):
             return "Pending"
     
-    def check_pending_orders(self):
-        params = "api_key={}&sign={}&market={}&orders_id={}"
-        response = requests.post("https://api.hotbit.io/api/v1/order.pending", data=params)
+    def check_pending_orders(self,  offset=settings.OFFSET, limit=settings.LIMIT):
+        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, SIGN, settings.MARKET, offset, limit)
+        response = requests.post(ORDER_PENDING, data=params)
         
-    def order_finished(self):
-        params = None
+    def order_finished(self, start_time, end_time, offset, limit, side):
+        params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}"
         reponse = requests.post("https://api.hotbit.io/api/v1/order.finished", data=params)
            
         
