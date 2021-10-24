@@ -1,9 +1,12 @@
-import requests, hashlib, datetime, time, dotnet, os, mysql.connector
+import requests, hashlib, datetime, time, dotenv, os, mysql.connector
 from pathlib import Path
 from pprint import pprint
 import settings
 
-mydb = mysql.connector.connect(host="localhost", user="root", passwd="1234")
+try:
+    mydb = mysql.connector.connect(host="localhost", user="root", passwd="1234")
+except:
+    pass
 
 SERVER_TIME = "https://api.hotbit.io/api/v1/server.time"
 BALANCE_QUERY = "https://api.hotbit.io/api/v1/balance.query"
@@ -27,10 +30,7 @@ MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h" # obtain today's 
 MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary" # market summary
 
 ALLTICKER = "https://api.hotbit.io/api/v1/allticker" # obtain the latest trading informnation of all transaction pairs in the market
- 
 
-INPUT_LOWER_RANGE = 1.15131
-INPUT_UPPER_RANGE = 1.15129
 
 PARAMS, PARAMS2 = None, None
 
@@ -58,8 +58,13 @@ def get_params():
     PARAMS2 = f"api_key={API_KEY}&assets={ASSETS}&sign={SIGN}"
     PARAMS = "api_key={}&sign={}&assets={}".format(API_KEY, SIGN, ASSETS)
 
+if (PARAMS or PARAMS2) is None or (PARAMS or PARAMS2 == ""):
+    print('getting params')
+    get_params()
 
-def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE):
+
+
+def get_input_range(lower_range=settings.INPUT_UPPER_RANGE, upper_range=settings.INPUT_UPPER_RANGE):
     global INPUT_LOWER_RANGE, INPUT_UPPER_RANGE
     INPUT_UPPER_RANGE = upper_range
     INPUT_LOWER_RANGE = lower_range
@@ -67,15 +72,20 @@ def get_input_range(lower_range=INPUT_UPPER_RANGE, upper_range=INPUT_UPPER_RANGE
     if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE or CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
         raise Exception("Range should be bounded to crypto current value")
 
+
 def get_server_time():
     return requests.get(SERVER_TIME).json()
+
 
 def get_epoch_time(year, month, day, hours, minutes, seconds):
     epoch_time = datetime.datetime(year, month, day, hours, seconds).timestamp()
     return epoch_time
 
+
 def get_epoch_now():
-    time.localtime().tm_sec
+    epoch_time = datetime.datetime(time.localtime().tm_year, time.localtime().tm_mon, time.localtime().tm_mday, time.localtime().tm_hour, time.localtime().tm_min, time.localtime().tm_sec).timestamp()
+    return epoch_time
+
 
 class Account():
     
@@ -92,7 +102,7 @@ class Account():
         '''
         if not business:
             business="deposit"
-        parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, SIGN, settings.ASSET, business, start_time, end_time, offset, limit)
+        parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, settings.ASSET, business, start_time, end_time, offset, limit)
         response = requests.post(BALANCE_HISTORY, data=parameter_for_history )
         return response.json()
 
@@ -101,7 +111,7 @@ class Account():
         | Name of Method | Type of Method | Description |
         | balance.query | post  | Obtain User Assets |  
         '''
-        parameter = "api_key={}&sign={}&assets={}".format(settings.API_KEY, SIGN, settings.ASSETS)
+        parameter = "api_key={}&sign={}&assets={}".format(settings.API_KEY, settings.SIGN, settings.ASSETS)
         response = requests.post(BALANCE_QUERY, data=parameter)
         return response.json()
 
@@ -117,24 +127,24 @@ class Order():
     
     def sell(self, amount=0, price=0):
         side = 1 # 1 for sell and 2 for buy
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, SIGN, side, amount, price, settings.ISFEE)
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params)
     
     def buy(self, amount=0, price=0):
         side = 2 # 1 for sell and 2 for buy
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, SIGN, side, amount, price, settings.ISFEE)
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params)
     
     def order_cancel(self, order_id=0):
-        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, SIGN, settings.MARKET, order_id)
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
         response = requests.post(ORDER_CANCEL, data=params)
 
     def bulk_cancel(self, orders_id=[0]):
-        params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, SIGN, settings.MARKET, orders_id)
+        params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, orders_id)
         response = requests.post(ORDER_BULK_CANCEL, data=params)
 
     def order_detail(self, order_id=0, offset=settings.OFFSET):
-        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, SIGN, settings.MARKET, order_id)
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
         response = requests.post(ORDER_DEALS, data=params)
     
     def order_status(self, order_id):
@@ -144,12 +154,12 @@ class Order():
             return "Pending"
     
     def check_pending_orders(self,  offset=settings.OFFSET, limit=settings.LIMIT):
-        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, SIGN, settings.MARKET, offset, limit)
+        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, offset, limit)
         response = requests.post(ORDER_PENDING, data=params)
         
     def order_finished(self, start_time, end_time, offset, limit, side):
-        params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}"
-        reponse = requests.post("https://api.hotbit.io/api/v1/order.finished", data=params)
+        params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, start_time, end_time, offset, limit, side)
+        reponse = requests.post(ORDER_FINISHED_DETAIL, data=params)
            
         
         
@@ -159,14 +169,13 @@ class Market():
         pass
 
     def market_status_today(self):
-        crypto = "CTS"
-        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market=CTS/USDT")
+        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market={CTS/USDT}")
         return response.json()
    
  
     def market_summery(self):
         crypto = "CTS/USDT"
-        response = requests.get("https://api.hotbit.io/api/v1/market.summary?markets=CTS/USDT")
+        response = requests.get("https://api.hotbit.io/api/v1/market.summary?markets={CTS/USDT}")
         return response.json()
   
     
@@ -176,7 +185,7 @@ class Market():
         return response.json()
 
 
-    def market_kline(self):
+    def market_kline(self, start_time, end_time, interval):
         crypto = "CTS/USDT"
         start_time = 0
         end_time = 0
@@ -187,14 +196,6 @@ class Market():
         params = None
         reponse = requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS)
         return reponse.json()
-
-
-
-
-if (PARAMS or PARAMS2) is None or (PARAMS or PARAMS2 == ""):
-    print('getting params')
-    get_params()
-    
 
 
 response = requests.get("{}?market=CTS/USDT".format(MARKET_LAST), data=PARAMS)
@@ -210,7 +211,7 @@ CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.l
 
 print(CRYPTO_CURRENT_VALUE)
 
-if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
+if CRYPTO_CURRENT_VALUE < settings.INPUT_LOWER_RANGE:
     DECREASE = INPUT_LOWER_RANGE - CRYPTO_CURRENT_VALUE
     INCREASE = 0
     print("Oversold! Seller aare greater then buyer ! please add buyer proportion to difference !")
@@ -218,7 +219,7 @@ if CRYPTO_CURRENT_VALUE < INPUT_LOWER_RANGE:
     # Selling logic ( like after we bought a batch our bot will continue to buy the coins cause still the price is higher for few seconds will be a huge problem )
     print(DECREASE)
     
-elif CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
+elif CRYPTO_CURRENT_VALUE > settings.INPUT_UPPER_RANGE:
     INCREASE = CRYPTO_CURRENT_VALUE - INPUT_UPPER_RANGE
     DECREASE = 0
     print("Overbought! Buyer are greater than seller ! please sell your coins proportion to difference !")
@@ -227,15 +228,19 @@ elif CRYPTO_CURRENT_VALUE > INPUT_UPPER_RANGE:
     print(INCREASE)
     
     
-# time ,open, close, high, low ,volume, deal, market  
-response = requests.get("https://api.hotbit.io/api/v1/market.kline?market=CTS/USDT&start_time=1634887815&end_time=1634887841&interval=60")
-print(response.content)
+# # time ,open, close, high, low ,volume, deal, market  
+# response = requests.get("https://api.hotbit.io/api/v1/market.kline?market=CTS/USDT&start_time=1634887815&end_time=1634887841&interval=60")
+# print(response.content)
 
-# all the data about CTS
-response = requests.get("https://api.hotbit.io/api/v1/market.status?market=CTS/USDT&period=10")
-print(response.content)
+# # all the data about CTS
+# response = requests.get("https://api.hotbit.io/api/v1/market.status?market=CTS/USDT&period=10")
+# print(response.content)
 
 
-#A account status of user
-response = requests.post("https://api.hotbit.io/api/v1/balance.query", data=PARAMS2)
-print(response.content)
+# #A account status of user
+# response = requests.post("https://api.hotbit.io/api/v1/balance.query", data=PARAMS2)
+# print(response.content)
+
+market = Market()
+account = Account()
+order = Order()
