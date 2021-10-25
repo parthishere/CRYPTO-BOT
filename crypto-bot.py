@@ -187,7 +187,7 @@ class Market():
         crypto = "CTS/USDT"
         start_time = 0
         end_time = 0
-        response = requests.get("https://api.hotbit.io/api/v1/market.kline?market={}&start_time={}&end_time={}}&interval={}}".format(market, start_time, end_time, interval)) 
+        response = requests.get("https://api.hotbit.io/api/v1/market.kline?market={}&start_time={}&end_time={}}&interval={}".format(market, start_time, end_time, interval)) 
         return response.json()
     
     def market_last_value(self, market=settings.MARKET):
