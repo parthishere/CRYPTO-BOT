@@ -168,28 +168,26 @@ class Market():
     def __init__(self):
         pass
 
-    def market_status_today(self):
-        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market={CTS/USDT}")
+    def market_status_today(self, market="CTS/USDT"):
+        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market={}".format(settings.MARKET))
         return response.json()
    
  
-    def market_summery(self):
-        crypto = "CTS/USDT"
-        response = requests.get("https://api.hotbit.io/api/v1/market.summary?markets={CTS/USDT}")
+    def market_summery(self, market="CTS/USDT"):
+        response = requests.get("https://api.hotbit.io/api/v1/market.summary?markets={}".format(market))
         return response.json()
   
     
-    def market_status_24h(self):
-        crypto="CTS/USDT"
-        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market=CTS/USDT")
+    def market_status_24h(self, market="CTS/USDT"):
+        response = requests.get("https://api.hotbit.io/api/v1/market.status_today?market={}".format(market))
         return response.json()
 
 
-    def market_kline(self, start_time, end_time, interval):
+    def market_kline(self, start_time=0, end_time=0, interval=settings.INTERVAL, market="CTS/USDT"):
         crypto = "CTS/USDT"
         start_time = 0
         end_time = 0
-        response = requests.get("https://api.hotbit.io/api/v1/market.kline?market=ETH/BTC&start_time=1521100000&end_time=1521101193&interval=60") 
+        response = requests.get("https://api.hotbit.io/api/v1/market.kline?market={}&start_time={}&end_time={}}&interval={}}".format(market, start_time, end_time, interval)) 
         return response.json()
     
     def market_last_value(self, market=settings.MARKET):
