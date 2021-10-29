@@ -39,13 +39,13 @@ class ExchangeInterface:
         return lowest_sell if lowest_sell else {'price': 2**32}  # ought to be enough for anyone
 
     def get_margin(self):
-        pass
+        return self.hotbit.get_balance_query()
 
-    def get_ticker(self):
+    def get_ticker(self, symbol=None):
         """ real time data of symbol  """
-    
-    def market_depth(self):
-        return self.hotbit.market_depth()
+        if symbol is None:
+            symbol = self.symbol
+        return self.hotbit.market_summery(symbol)
         
     def create_bulk_orders(self, orders):
         return self.hotbit.create_bulk_orders(orders)
@@ -54,12 +54,27 @@ class ExchangeInterface:
         return self.hotbit.pending_orders()
     
     def cancel_order(self, order):
-        return self.hotbit.cancel(order['id'])
+        logger.info("Canceling: %s %d @ %.*f" % (order['side'], order['orderQty'], tickLog, order['price']))
+        return self.hotbit.order_cancel(order['id'])
     
     def cancel_all_orders(self):
-        pass
+        logger.info("Resetting current position. Canceling all existing orders.")
+        
+        orders = self.hotbit.pending_orders()
+        
+        if len(orders):
+            self.hotbit.order_cancel([order['id'] for order in orders])
     
     def cancel_bulk_orders(self, orders):
-        return self.hotbit.cancel([order['orderID'] for order in orders])
+        return self.hotbit.bulk_cancel([order['id'] for order in orders])
+    
+    
+    
+    
+    
+    
+    
+    
+    
 
     

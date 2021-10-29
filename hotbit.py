@@ -130,6 +130,26 @@ class Hotbit:
     def check_market_open(self):
         resopose = requests.get()
     
+    ###########
+    ## ORDER ##
+    ###########
+    
+    def authentication_required(fn):
+        """Annotation for methods that require auth."""
+        def wrapped(self, *args, **kwargs):
+            if not (self.apiKey):
+                msg = "You must be authenticated to use this method"
+                raise AuthenticationError(msg)
+            else:
+                return fn(self, *args, **kwargs)
+        return wrapped
+    
+    def place_order(self, quantity, price, buy, sell):
+        if price < 0:
+            raise Exception("Price must be positive.")
+        buy_orders = []
+        sell_orders = []
+        
     def sell(self, amount=0, price=0):
         side = 1 # 1 for sell and 2 for buy
         params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
@@ -158,12 +178,6 @@ class Hotbit:
         response = requests.get("https://api.hotbit.io/api/v1/order.depth?market={}&limit={}&interval={}".format(market, limit, interval))
         return response.json()
     
-    def order_status(self, order_id):
-        if requests.post("https://api.hotbit.io/api/v1/order.finished_detail"):
-            return "Finished"
-        if requests.post("https://api.hotbit.io/api/v1/order.pending"):
-            return "Pending"
-    
     def check_pending_orders(self,  offset=settings.OFFSET, limit=settings.LIMIT):
         params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, offset, limit)
         response = requests.post(ORDER_PENDING, data=params)
@@ -176,4 +190,13 @@ class Hotbit:
     def get_crypto_price(self, market=None):    
         CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
  
+ 
+class AuthenticationError(Exception):
+        pass
+
+class MarketClosedError(Exception):
+    pass
+
+class MarketEmptyError(Exception):
+    pass
     
