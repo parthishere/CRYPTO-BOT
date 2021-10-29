@@ -1,5 +1,6 @@
 import sys, os
 import settings
+import hotbit
 
 
 class ExchangeInterface:
@@ -9,7 +10,7 @@ class ExchangeInterface:
         else:
             self.symbol = settings.SYMBOL
             
-        self.hotbit = Hotbit(settings.API_KEY, settings.SECRET_KEY)
+        self.hotbit = hotbit.Hotbit(settings.API_KEY, settings.SECRET_KEY)
     
     def get_position(self, symbol=None):
         if symbol is None:
