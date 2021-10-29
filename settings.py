@@ -30,21 +30,20 @@ ASSETS = ["CTS/USDT"]
 ASSET = "CTS"
 MARKET = "CTS/USDT"
 
+MAINTAIN_SPREAD = False
+MIN_SPREAD = 0.01
+MAX_SPREAD = 0.05
+
+MIN_ORDER_SIZE = 0
+MAX_ORDER_SIZE = -1 # no Limit
+
+CHECK_POSITION_LIMITS = True
+MAX_POSITION = 0
+MIN_POSITION = 0
+
 TIMEZONE = 'IST'
 DEFAULT_BUSINESS= "deposit"
 OFFSET = 0
 LIMIT = 0
 INTERVAL = 1
 ISFEE = 0
-
-
-SERVER_TIME = "https://api.hotbit.io/api/v1/server.time"
-BALANCE_QUERY = "https://api.hotbit.io/api/v1/balance.query"
-BALANCE_HISTORY = "https://api.hotbit.io/api/v1/balance.history"
-ASSETS_LIST = "https://api.hotbit.io/api/v1/asset.list"
-MARKET_LIST = "https://api.hotbit.io/api/v1/market.list"
-MARKET_LAST = "https://api.hotbit.io/api/v1/market.last"
-USER_DEALS = "https://api.hotbit.io/api/v1/market.user_deals"
-STATUS_TODAY = "https://api.hotbit.io/api/v1/market.status_today"
-MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h"
-MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary"
