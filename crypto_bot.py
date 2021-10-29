@@ -59,7 +59,7 @@ def get_input_range(lower_range=settings.INPUT_UPPER_RANGE, upper_range=settings
 
 
 
-print(CRYPTO_CURRENT_VALUE)
+# print(CRYPTO_CURRENT_VALUE)
 
 
 class Difference():
@@ -94,35 +94,35 @@ class Difference():
 
 
 
-if __name__ == '__main__':
-    market = Market()
-    account= Account()
-    order = Order()
+# if __name__ == '__main__':
+#     market = Market()
+#     account= Account()
+#     order = Order()
     
-    print(CRYPTO_CURRENT_VALUE)
+#     print(CRYPTO_CURRENT_VALUE)
     
-    orders_depth = order.order_depth()
+#     orders_depth = order.order_depth()
 
-    asks = orders_depth['result']['asks']
-    bids = orders_depth['result']['asks']
+#     asks = orders_depth['result']['asks']
+#     bids = orders_depth['result']['asks']
 
-    for volume, price in asks:
-        final_ask_volume += float(volume)
+#     for volume, price in asks:
+#         final_ask_volume += float(volume)
         
-    for volume, price in bids:
-        final_bid_volume += float(volume)
+#     for volume, price in bids:
+#         final_bid_volume += float(volume)
         
-    market_summery = market.market_summery()
-    market_summery_cts_btc = None
-    market_summery_cts_usdt = None
-    for market in market_summery["result"]:
-        if (market["name"] == "CTSUSDT"):
-            market_summery_cts_usdt = market
-        if  (market["name"] == "CTSBTC"):
-            market_summery_cts_btc = market
-    print(market_summery_cts_usdt['ask_amount'], market_summery_cts_btc['ask_amount'])
-    print(market_summery_cts_usdt['bid_amount'], market_summery_cts_btc['bid_amount'])
-    diff = Difference(market_summery_cts_usdt, market_summery_cts_btc)
+#     market_summery = market.market_summery()
+#     market_summery_cts_btc = None
+#     market_summery_cts_usdt = None
+#     for market in market_summery["result"]:
+#         if (market["name"] == "CTSUSDT"):
+#             market_summery_cts_usdt = market
+#         if  (market["name"] == "CTSBTC"):
+#             market_summery_cts_btc = market
+#     print(market_summery_cts_usdt['ask_amount'], market_summery_cts_btc['ask_amount'])
+#     print(market_summery_cts_usdt['bid_amount'], market_summery_cts_btc['bid_amount'])
+#     diff = Difference(market_summery_cts_usdt, market_summery_cts_btc)
     
 
 

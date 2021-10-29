@@ -1,7 +1,7 @@
 import sys, os
 import settings
 import hotbit
-
+import logger
 
 class ExchangeInterface:
     def __init__(self):
@@ -64,7 +64,7 @@ class ExchangeInterface:
         orders = self.hotbit.pending_orders()
         
         if len(orders):
-            self.hotbit.order_cancel([order['id'] for order in orders])
+            self.hotbit.bulk_cancel([order['id'] for order in orders])
     
     def cancel_bulk_orders(self, orders):
         return self.hotbit.bulk_cancel([order['id'] for order in orders])
