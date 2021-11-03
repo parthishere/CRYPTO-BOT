@@ -140,6 +140,17 @@ class Hotbit:
   
 
     def market_kline(self, start_time=0, end_time=0, interval=settings.INTERVAL, market=None):
+        """
+        Response:
+        {
+            "error": null,
+            "result": [   
+            [1525067600, "11714.04", "11710.01", "11778.69", "11697.18", "13.604065", "159329.23062211", "BTCUSDT"], 
+            [1565067660, "11703.47", "11716.65", "11720.55", "11703.47", "14.401973", "168649.82127032", "BTCUSDT"], 
+            [1565067720, "11714.24", "11715.09", "11724.5", "11707.78", "12.287975", "143952.77384769", "BTCUSDT"]],#time ,open, close, high, low ,volume, deal, market
+            "id": 1521169586
+        }
+        """
         if market is None:
             market=self.market
         response = requests.get("{}?market={}&start_time={}&end_time={}&interval={}".format(MARKET_KLINE, market, start_time, end_time, interval), headers=HEADERS) 
@@ -159,8 +170,7 @@ class Hotbit:
     
     def get_balance_history(self, business, start_time, end_time, offset, limit):
         '''
-        | Name of Method | Type of Method | Description |
-        | balance.history | post  | Obtain the records regarding the changes in user assets |
+        
         '''
         if not business:
             business="deposit"
@@ -243,14 +253,117 @@ class Hotbit:
         response = requests.post(ORDER_PUT_LIMIT, data=params)
     
     def order_cancel(self, order_id=0):
+        """
+        {
+            "error": null,
+            "result": 
+            {
+            "id":8688803,    #order-ID
+                "market":"ETHBTC",
+                "source":"web",    #The source identification of data request
+                "type":1,	       #Type of order pladement 1-limit order
+                "side":2,	       #The sign of buyer and seller 1-seller，2-buyer
+                "user":15731,
+                "ctime":1526971722.164765, #Time of order establishment(second)
+                "mtime":1526971722.164765, #Time of order update(second)
+                "price":"0.080003",
+                "amount":"0.4",
+                "taker_fee":"0.0025",
+                "maker_fee":"0",
+                "left":"0.4",
+                "deal_stock":"0",
+                "deal_money":"0",
+                "deal_fee":"0",
+                "status":0    , #Sign of order status  when 0x8 is true, it means the current order is cancelled, when 0x80 is true, it means that the current order is deducted by deductable tokens	    "fee_stock":"HTB",	#Name of deductable token
+                "alt_fee":"0.5",	#The discount of deductable tokens
+                "deal_fee_alt":"0.123" #The amount deducted
+                },
+            "id": 1521169460
+        }
+        """
         params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
         response = requests.post(ORDER_CANCEL, data=params)
 
     def bulk_cancel(self, orders_id=[0]):
+        """
+        Response:
+        {
+            "error": null,
+            "result": 
+            [
+                    {#Correct feedback
+                        "id":8688803,    #order-ID(unsigned 64bit)
+                            "market":"ETHBTC",
+                            "source":"web",    #The source identification of data request
+                            "type":1,	       #Type of order placement 1-limit order
+                            "side":2,	       #sign of buyer and seller 1-seller，2-buyer
+                            "user":15731,
+                            "ctime":1526971722.164765, #Time of order establishment(second)
+                            "mtime":1526971722.164765, #Time of order update(second)
+                            "price":"0.080003",
+                            "amount":"0.4",
+                            "taker_fee":"0.0025",
+                            "maker_fee":"0",
+                            "left":"0.4",
+                            "deal_stock":"0",
+                            "deal_money":"0",
+                            "deal_fee":"0",
+                    "status":0    , #Sign of order status  when 0x8 is true, it means the current order is cancelled, when 0x80 is true, it means that the current order is deducted by deductable tokens		    "fee_stock":"HTB",	#Name of deductable token
+                    "alt_fee":"0.5",	#The discount of deductable token
+                        "deal_fee_alt":"0.123" #The amount deducted
+                    },
+                    {	#Error feedback occured
+                        "error": {	
+                "code":10
+                "message":"order not found"
+                }
+                "result":null,
+                    "id": 1521169460
+                    }
+                ],
+            "id": 1521169460
+        }
+
+        """
         params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, orders_id)
         response = requests.post(ORDER_BULK_CANCEL, data=params)
 
     def order_detail(self, order_id=0, offset=settings.OFFSET):
+        """
+        Response:
+        {
+            "error": null,
+            "result": {
+                "offset": 10,
+                "limit": 10,
+                "records": [
+                    {
+                        "time": 1521107411.116817,
+                        "user": 15643,
+                        "id": 1385154,
+                        "role": 1,
+                        "price": "0.02",
+                        "amount": "0.071",
+                        "deal": "0.00142",
+                        "fee": "0",
+                        "deal_order_id": 2337658
+                    },
+                    {
+                        "time": 1521107410.357024,#(秒)
+                        "user": 15643,
+                        "id": 1385151,
+                        "role": 1,
+                        "price": "0.02",
+                        "amount": "0.081",
+                        "deal": "0.00162",
+                        "fee": "0",
+                        "deal_order_id": 2337653
+                    }
+                ]
+            },
+            "id": 1521169460
+        }
+        """
         params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
         response = requests.post(ORDER_DEALS, data=params)
         
@@ -259,12 +372,76 @@ class Hotbit:
         return response.json()
     
     def check_pending_orders(self,  market=None, offset=settings.OFFSET, limit=settings.LIMIT):
+        """
+                {
+            "error":null,
+            "result":{
+                "ETHBTC":{
+                    "limit":50,
+                    "offset":0,
+                    "total":1,
+                    "records":[
+                        {
+                            "id":8688803,    #order-ID
+                            "market":"ETHBTC",
+                            "source":"web",    #source identification of data request
+                            "type":1,	       #type of order placement 1-limit order
+                            "side":2,	       #sign of buyer and seller 1-seller，2-buyer
+                            "user":15731,
+                            "ctime":1526971722.164765, #Time of order establishment
+                            "mtime":1526971722.164765, #Time of order establishment
+                            "price":"0.080003",
+                            "amount":"0.4",
+                            "taker_fee":"0.0025",
+                            "maker_fee":"0",
+                            "left":"0.4",
+                            "deal_stock":"0",
+                            "deal_money":"0",
+                            "deal_fee":"0",
+                    "status":0    , #Sign of order status when 0x8 is true, it means the current order is cancelled, when 0x80 is true, it means that the current order is deducted by deductable tokens		    "fee_stock":"HTB",	#name of deductable token
+                    "alt_fee":"0.5",	#Discount of the deductable token
+                        "deal_fee_alt":"0.123" #amount deducted
+                        }
+                    ]
+                }
+            },
+            "id":1526971756
+        }
+
+        """
         if market == None:
             market = settings.MARKET
         params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, market, offset, limit)
         response = requests.post(ORDER_PENDING, data=params)
         
     def order_finished(self, start_time, end_time, offset, limit, side):
+        """
+        Response:
+        {
+            "error": null,
+            "result": {
+                "id": 1,
+                "ctime": 1535545564.4409361,#(秒)
+                "ftime": 1535545564.525017,#(秒)
+                "user": 15731,
+                "market": "YCCETH",
+                "source": "test",
+                "type": 1,
+                "side": 2,
+                "price": "0.0000509",
+                "amount": "1",
+                "taker_fee": "0.001",
+                "maker_fee": "0.001",
+                "deal_stock": "1",
+                "deal_money": "0.0000509",
+                "deal_fee": "0.001",
+            "status":0    , #Sign of order status when 0x8 is true, it means the current order is cancelled, when 0x80 is true, it means that the current order is deducted by deductable tokens   	"fee_stock":"HTB",	#Name of deductable token
+            "alt_fee":"0.5",	#The discount of deductable token
+            "deal_fee_alt":"0.123" #Amount deducted
+            },
+            "id": 1536050997
+        }
+        """
         params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, start_time, end_time, offset, limit, side)
         reponse = requests.post(ORDER_FINISHED_DETAIL, data=params)
     
