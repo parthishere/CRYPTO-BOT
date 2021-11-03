@@ -25,6 +25,11 @@ class ExchangeInterface:
     def get_instrument(self):
         pass
 
+
+    def get_recent_orders(self):
+        return self.hotbit.get_recent_orders()
+    
+    
     def get_highest_buy(self):
         buys = [o for o in self.market_deals() if o['type'] == 'buy']
         if not len(buys):
@@ -69,13 +74,5 @@ class ExchangeInterface:
     def cancel_bulk_orders(self, orders):
         return self.hotbit.bulk_cancel([order['id'] for order in orders])
     
-    
-    
-    
-    
-    
-    
-    
-    
-
-    
+    def get_order_book(self):
+        pass

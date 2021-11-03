@@ -81,7 +81,58 @@ class Hotbit:
     ## MARKET ##
     ############
     
+    def get_recent_orders(self, market=None, limit=100):
+        """
+        {"error":null,
+        "result":[{"id":3219750640,"time":1635931109,"price":"0.07278929","amount":"0.192","type":"sell"},
+        {"id":3219749145,"time":1635931093,"price":"0.07278927","amount":"0.408","type":"buy"},
+        {"id":3219739811,"time":1635930998,"price":"0.07278927","amount":"0.205","type":"buy"}],
+        "id":104403852}
+        """
+        if market is None:
+            market = settings.MARKET
+        response = requests.get("{}?market={}&limit={}&last_id=1".format(MARKET_DEALS, market, limit)).json()
+        return response
+    
+    def market_status(self, period=10, market=None):
+        """
+        Response:
+        {
+            "error": null,
+            "result": {
+                "period": 10,
+                "last": "0.0743",
+                "open": "0.074162",
+                "close": "0.0743",
+                "high": "0.0743",
+                "low": "0.074162",
+                "volume": "0.314",
+                "deal": "0.023315531"
+            },
+            "id": 1521169247
+        }
+        """
+        if not market:
+            market = settings.MARKET
+        repsponse = requests.get("{}?market={}&period={}".format(MARKET_STATUS, market, period))
+        
     def market_summery(self, markets=None):
+        """ 
+        Response:
+        {
+            "error": null,
+            "result": [
+                {
+                    "name": "ETHBTC",
+                    "ask_count": 0,
+                    "ask_amount": "0",
+                    "bid_count": 0,
+                    "bid_amount": "0"
+                },
+            ],
+            "id": 1521169429
+        }
+        """
         if markets is None:
             markets=self.markets
         response = requests.get("{}?markets={}".format(MARKET_SUMMERY, markets), headers=HEADERS)
@@ -151,13 +202,42 @@ class Hotbit:
         sell_orders = []
         
     def sell(self, amount=0, price=0):
+        """
+        Response:
+        {
+            "error": null,
+            "result": 
+            {
+            "id":8688803,    #order-ID
+                "market":"ETHBTC",
+                "source":"web",    #The source identification of data request
+                "type":1,	       #Type of order pladement 1-limit order
+                "side":2,	       #Identification of buyers and sellers 1-Seller，2-buyer
+                "user":15731,
+                "ctime":1526971722.164765, #Time of order establishment(second)
+                "mtime":1526971722.164765, #Time of order update(second)
+                "price":"0.080003",
+                "amount":"0.4",
+                "taker_fee":"0.0025",
+                "maker_fee":"0",
+                "left":"0.4",
+                "deal_stock":"0",
+                "deal_money":"0",
+                "deal_fee":"0",
+                "status":0    , #Sign of order status when 0x8 is true, it means the current order is cancelled, when 0x80 is true, it means that the current order is deducted by deductable tokens	    "fee_stock":"HTB",	#Name of deductable token
+                "alt_fee":"0.5",	#The discount of deductable tokens
+                "deal_fee_alt":"0.123" #Amount deducted
+                },
+            "id": 1521169460
+        }
+        """
         side = 1 # 1 for sell and 2 for buy
         params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params)
     
     def buy(self, amount=0, price=0):
         side = 2 # 1 for sell and 2 for buy
-        if self.get_balance_query().get('result').get('CTS').get('available') < price*amount:
+        if self.get_balance_query().get('result').get(settings.ASSET).get('available') < price*amount:
             print("dont have enough credit")
         params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params)
@@ -174,12 +254,14 @@ class Hotbit:
         params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
         response = requests.post(ORDER_DEALS, data=params)
         
-    def order_depth(self, market='CTS/USDT', limit=100, interval='1e-8'):
+    def order_depth(self, market=settings.MARKET, limit=100, interval='1e-8'):
         response = requests.get("https://api.hotbit.io/api/v1/order.depth?market={}&limit={}&interval={}".format(market, limit, interval))
         return response.json()
     
-    def check_pending_orders(self,  offset=settings.OFFSET, limit=settings.LIMIT):
-        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, offset, limit)
+    def check_pending_orders(self,  market=None, offset=settings.OFFSET, limit=settings.LIMIT):
+        if market == None:
+            market = settings.MARKET
+        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, market, offset, limit)
         response = requests.post(ORDER_PENDING, data=params)
         
     def order_finished(self, start_time, end_time, offset, limit, side):
@@ -189,6 +271,7 @@ class Hotbit:
 
     def get_crypto_price(self, market=None):    
         CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
+        return CRYPTO_CURRENT_VALUE
  
  
 class AuthenticationError(Exception):

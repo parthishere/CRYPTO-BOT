@@ -1,27 +1,30 @@
+from crypto_bot_2 import ExchangeInterface
+import settings, datetime, logger, sys, math, random
+from os.path import getmtime
+
+
+import os
+watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
+
+logger = log.setup_custom_logger('root')
+
 class OrderManager:
     def __init__(self):
-        self.exchange = ExchangeInterface(settings.DRY_RUN)
-        # Once exchange is created, register exit handler that will always cancel orders
+        self.exchange = ExchangeInterface()
+        # O```````````````````````````nce exchange is created, register exit handler that will always cancel orders
         # on any error.
-        atexit.register(self.exit)
-        signal.signal(signal.SIGTERM, self.exit)
 
         logger.info("Using symbol %s." % self.exchange.symbol)
 
-        if settings.DRY_RUN:
-            logger.info("Initializing dry run. Orders printed below represent what would be posted to BitMEX.")
-        else:
-            logger.info("Order Manager initializing, connecting to BitMEX. Live run: executing real trades.")
+        logger.info("Order Manager initializing, connecting to BitMEX. Live run: executing real trades.")
 
         self.start_time = datetime.now()
-        self.instrument = self.exchange.get_instrument()
         self.starting_qty = self.exchange.get_delta()
         self.running_qty = self.starting_qty
         self.reset()
 
     def reset(self):
         self.exchange.cancel_all_orders()
-        self.sanity_check()
         self.print_status()
 
         # Create orders and converge.
@@ -33,75 +36,33 @@ class OrderManager:
         margin = self.exchange.get_margin()
         position = self.exchange.get_position()
         self.running_qty = self.exchange.get_delta()
-        tickLog = self.exchange.get_instrument()['tickLog']
-        self.start_XBt = margin["marginBalance"]
 
-        logger.info("Current XBT Balance: %.6f" % XBt_to_XBT(self.start_XBt))
         logger.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logger.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
-        if position['currentQty'] != 0:
-            logger.info("Avg Cost Price: %.*f" % (tickLog, float(position['avgCostPrice'])))
-            logger.info("Avg Entry Price: %.*f" % (tickLog, float(position['avgEntryPrice'])))
+       
         logger.info("Contracts Traded This Run: %d" % (self.running_qty - self.starting_qty))
-        logger.info("Total Contract Delta: %.4f XBT" % self.exchange.calc_delta()['spot'])
-
-    def get_ticker(self):
-        ticker = self.exchange.get_ticker()
-        tickLog = self.exchange.get_instrument()['tickLog']
-
-        # Set up our buy & sell positions as the smallest possible unit above and below the current spread
-        # and we'll work out from there. That way we always have the best price but we don't kill wide
-        # and potentially profitable spreads.
-        self.start_position_buy = ticker["buy"] + self.instrument['tickSize']
-        self.start_position_sell = ticker["sell"] - self.instrument['tickSize']
-
-        # If we're maintaining spreads and we already have orders in place,
-        # make sure they're not ours. If they are, we need to adjust, otherwise we'll
-        # just work the orders inward until they collide.
-        if settings.MAINTAIN_SPREADS:
-            if ticker['buy'] == self.exchange.get_highest_buy()['price']:
-                self.start_position_buy = ticker["buy"]
-            if ticker['sell'] == self.exchange.get_lowest_sell()['price']:
-                self.start_position_sell = ticker["sell"]
-
-        # Back off if our spread is too small.
-        if self.start_position_buy * (1.00 + settings.MIN_SPREAD) > self.start_position_sell:
-            self.start_position_buy *= (1.00 - (settings.MIN_SPREAD / 2))
-            self.start_position_sell *= (1.00 + (settings.MIN_SPREAD / 2))
-
-        # Midpoint, used for simpler order placement.
-        self.start_position_mid = ticker["mid"]
-        logger.info(
-            "%s Ticker: Buy: %.*f, Sell: %.*f" %
-            (self.instrument['symbol'], tickLog, ticker["buy"], tickLog, ticker["sell"])
-        )
-        logger.info('Start Positions: Buy: %.*f, Sell: %.*f, Mid: %.*f' %
-                    (tickLog, self.start_position_buy, tickLog, self.start_position_sell,
-                     tickLog, self.start_position_mid))
-        return ticker
 
     def get_price_offset(self, index):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
            Negative is a buy, positive is a sell."""
         # Maintain existing spreads for max profit
+        ############### CHECK THIS OUT ###############
+        price = self.exchange.market_status(period=5)['result']['open']
         if settings.MAINTAIN_SPREADS:
-            start_position = self.start_position_buy if index < 0 else self.start_position_sell
-            # First positions (index 1, -1) should start right at start_position, others should branch from there
-            index = index + 1 if index < 0 else index - 1
-        else:
-            # Offset mode: ticker comes from a reference exchange and we define an offset.
-            start_position = self.start_position_buy if index < 0 else self.start_position_sell
-
-            # If we're attempting to sell, but our sell price is actually lower than the buy,
-            # move over to the sell side.
-            if index > 0 and start_position < self.start_position_buy:
-                start_position = self.start_position_sell
-            # Same for buys.
-            if index < 0 and start_position > self.start_position_sell:
-                start_position = self.start_position_buy
-
-        return math.toNearest(start_position * (1 + settings.INTERVAL) ** index, self.instrument['tickSize'])
+            if self.get_highest_buy() > self.get_lowest_sell():
+                prices = []
+                for i in range(1, settings.MAX_ORDER_PAIRS):
+                    prices.append(round(random.uniform(price, price+price*settings.MAX_SPREAD/100), settings.PRICE_PRECISION))
+                    
+                prices.sort()
+            elif self.get_highest_buy() <= self.get_lowest_sell():
+                prices = []
+                for i in range(1, 6):
+                    prices.append(round(random.uniform(2, 2 + 2*0.1/100), 4))
+                    
+                prices.sort()
+        return prices
 
     ###
     # Orders
@@ -116,42 +77,86 @@ class OrderManager:
         # then we match orders from the outside in, ensuring the fewest number of orders are amended and only
         # a new order is created in the inside. If we did it inside-out, all orders would be amended
         # down and a new order would be created at the outside.
-        for i in reversed(range(1, settings.ORDER_PAIRS + 1)):
-            if not self.long_position_limit_exceeded():
-                buy_orders.append(self.prepare_order(-i))
-            if not self.short_position_limit_exceeded():
-                sell_orders.append(self.prepare_order(i))
+        # for i in reversed(range(1, settings.ORDER_PAIRS + 1)):
+        #     if not self.long_position_limit_exceeded():
+        #         buy_orders.append(self.prepare_order(-i))
+        #     if not self.short_position_limit_exceeded():
+        #         sell_orders.append(self.prepare_order(i))
+        # for fifteen days seconds are 15*24*60*60 = 1296000
+        period = 1296000
+        result = self.exchange.market_status(period=1296000)['results']
+        last_fortnight_value = result['open']
+        recent_value = result['last']
+        
+        recent_orders = self.exchange.get_recent_orders()
+        results = recent_orders['result']
+        bid_amount = 0
+        sell_amount = 0
+        for result in results:
+            if result['type'] == "buy":
+                bid_amount += float(result['amount'])
+            else:
+                sell_amount += float(result['amount'])
+        if bid_amount > sell_amount:
+            print("buyer is greater than seller sell some volume")
+            change = bid_amount - sell_amount
+            index = 1 # 1 for selling
+            buy_orders = self.prepare_order(index, amount=change)
+        elif bid_amount < sell_amount:
+            print("seller are grater than buyer, buy some volume..")
+            change = sell_amount - bid_amount
+            index = -1 # -1 for buying
+            sell_orders = self.prepare_order(index, amount=change)
+            
+        else:
+            # if settings.BUY_AGGRESIVELY:
+            #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+            #         index = -1 # -1 for buying
+            #         print("buyer are equal to seller, buying aggresively")
+            # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+            # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+            #         index = 1 # 1 for selling
+            #         print("buyer are equal to seller, buying aggresively")
+            # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+            # else:
+            print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
+                
 
         return self.converge_orders(buy_orders, sell_orders)
 
-    def prepare_order(self, index):
+    def prepare_order(self, index, amount):
         """Create an order object."""
+        orderQty = amount / settings.MAX_ORDER_PAIRS
+        orders = []
+        # if settings.RANDOM_ORDER_SIZE is True:
+        #     quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
+        # else:
+        #     quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
+        prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
+        for i in range(1, settings.MAX_ORDER_PAIRS+1):
+            
+            orders.append({'price': prices[i], 'orderQty': amount, 'side': "buy" if index < 0 else "Sell"})
 
-        if settings.RANDOM_ORDER_SIZE is True:
-            quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
-        else:
-            quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
-
-        price = self.get_price_offset(index)
-
-        return {'price': price, 'orderQty': quantity, 'side': "Buy" if index < 0 else "Sell"}
+        
+        print(orders)
+        return orders
 
     def converge_orders(self, buy_orders, sell_orders):
         """Converge the orders we currently have in the book with what we want to be in the book.
            This involves amending any open orders and creating new ones if any have filled completely.
            We start from the closest orders outward."""
 
-        tickLog = self.exchange.get_instrument()['tickLog']
+        # tickLog = self.exchange.get_instrument()['tickLog']
         to_amend = []
         to_create = []
         to_cancel = []
         buys_matched = 0
         sells_matched = 0
-        existing_orders = self.exchange.get_orders()
+        existing_user_orders = self.exchange.get_pending_orders()
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
-        for order in existing_orders:
+        for order in existing_user_orders:
             try:
                 if order['side'] == 'Buy':
                     desired_order = buy_orders[buys_matched]
@@ -167,8 +172,9 @@ class OrderManager:
                         abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
                     to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
                                      'price': desired_order['price'], 'side': order['side']})
-            except IndexError:
+            except Exception as e:
                 # Will throw if there isn't a desired order to match. In that case, cancel it.
+                print(e)
                 to_cancel.append(order)
 
         while buys_matched < len(buy_orders):
@@ -239,7 +245,7 @@ class OrderManager:
     # Sanity
     ##
 
-    def sanity_check(self):
+    def perform_check(self):
         """Perform checks before placing orders."""
 
         # Check if OB is empty - if so, can't quote.
@@ -249,7 +255,7 @@ class OrderManager:
         self.exchange.check_market_open()
 
         # Get ticker, which sets price offsets and prints some debugging info.
-        ticker = self.get_ticker()
+        # ticker = self.get_ticker()
 
         # Sanity check:
         if self.get_price_offset(-1) >= ticker["sell"] or self.get_price_offset(1) <= ticker["buy"]:
@@ -280,9 +286,6 @@ class OrderManager:
             if getmtime(f) > mtime:
                 self.restart()
 
-    def check_connection(self):
-        """Ensure the WS connections are still open."""
-        return self.exchange.is_open()
 
     def exit(self):
         logger.info("Shutting down. All open orders will be cancelled.")
@@ -310,10 +313,23 @@ class OrderManager:
                 logger.error("Realtime data connection unexpectedly closed, restarting.")
                 self.restart()
 
-            self.sanity_check()  # Ensures health of mm - several cut-out points here
-            self.print_status()  # Print skew, delta, etc
+            self.perform_check()  # Ensures health of mm - several cut-out points here
+            self.print_status()  # Print delta, etc
             self.place_orders()  # Creates desired orders and converges to existing orders
 
     def restart(self):
         logger.info("Restarting the market maker...")
         os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
+
+
+def run():
+    logger.info('HotBit Market Maker')
+
+    ordermanager = OrderManager()
+    # Try/except just keeps ctrl-c from printing an ugly stacktrace
+    try:
+        ordermanager.run_loop()
+    except (KeyboardInterrupt, SystemExit):
+        sys.exit()
