@@ -172,7 +172,7 @@ class OrderManager:
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_user_orders:
             try:
-                if order['side'] == 'Buy':
+                if order['side'] == 'buy':
                     desired_order = buy_orders[buys_matched]
                     buys_matched += 1
                 else:
@@ -180,7 +180,7 @@ class OrderManager:
                     sells_matched += 1
 
                 # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['leavesQty'] or (
+                if desired_order['orderQty'] != order['volume'] or (
                         # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
                         desired_order['price'] != order['price'] and
                         abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
