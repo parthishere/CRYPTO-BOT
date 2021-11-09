@@ -30,19 +30,32 @@ ASSETS = ["CTS/USDT"]
 ASSET = "CTS"
 MARKET = "CTS/USDT"
 
+
+# Maintain gap between Buyers Volume and Sellers Volume
 MAINTAIN_SPREAD = False
+# Max Spread
 MIN_SPREAD = 0.01
+# Min Spread
 MAX_SPREAD = 0.05
 
-MIN_ORDER_SIZE = 0
-MAX_ORDER_SIZE = -1 # no Limit
+# last open value of crypto before LAST_VALUE_PERIOD seconds
+LAST_VALUE_PERIOD = 5 
+
+
+# How much order size you want to put in orderbook ?
 MAX_ORDER_PAIRS = 6
+MIN_ORDER_SIZE = 0
+MAX_ORDER_SIZE = -1 # -1 = no Limit
+
+
 
 CHECK_POSITION_LIMITS = True
 MAX_POSITION = 0
 MIN_POSITION = 0
 
+# How much price after decimal point.
 PRICE_PRECISION = 4
+
 
 TIMEZONE = 'IST'
 DEFAULT_BUSINESS= "deposit"

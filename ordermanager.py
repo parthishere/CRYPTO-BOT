@@ -48,18 +48,28 @@ class OrderManager:
            Negative is a buy, positive is a sell."""
         # Maintain existing spreads for max profit
         ############### CHECK THIS OUT ###############
-        price = self.exchange.market_status(period=5)['result']['open']
+        if settings.BUY_AGGRESSIVELY:
+            SPREAD = settings.MAX_SPREAD
+        else:
+            SPREAD = settings.MIN_SPREAD
+        price = self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open']
         if settings.MAINTAIN_SPREADS:
             if self.get_highest_buy() > self.get_lowest_sell():
                 prices = []
                 for i in range(1, settings.MAX_ORDER_PAIRS):
-                    prices.append(round(random.uniform(price, price+price*settings.MAX_SPREAD/100), settings.PRICE_PRECISION))
+                    prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
+                    
+                    if prices[i] > self.get_highest_buy():
+                        prices[i] = self.get_highest_buy() if settings.MAINTAIN_SPREAD else self.get_highest_buy() + self.get_highest_buy()*settings.SPREAD / 100
                     
                 prices.sort()
             elif self.get_highest_buy() <= self.get_lowest_sell():
                 prices = []
-                for i in range(1, 6):
-                    prices.append(round(random.uniform(2, 2 + 2*0.1/100), 4))
+                for i in range(1, settings.MAX_ORDER_PAIRS):
+                    # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
+                    
+                    # or
+                    prices.append(round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
                     
                 prices.sort()
         return prices
