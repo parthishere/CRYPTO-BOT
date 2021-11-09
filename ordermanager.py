@@ -61,6 +61,8 @@ class OrderManager:
                     
                     if prices[i] > self.get_highest_buy():
                         prices[i] = self.get_highest_buy() if settings.MAINTAIN_SPREAD else self.get_highest_buy() + self.get_highest_buy()*settings.SPREAD / 100
+                    if price[i] < self.get_lowest_sell():
+                        prices[i] = self.get_lowest_sell()
                     
                 prices.sort()
             elif self.get_highest_buy() <= self.get_lowest_sell():
@@ -69,8 +71,10 @@ class OrderManager:
                     # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
                     # or
-                    prices.append(round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
-                    
+                    prices.append(round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION))
+                    if prices[i] < self.get_lowest_sell():
+                        prices[i] = round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION)
+
                 prices.sort()
         return prices
 
