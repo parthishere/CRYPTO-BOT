@@ -1,8 +1,15 @@
 import os, hashlib
+from os.path import join
 import dotenv
 from pathlib import Path
+import logging
 
-BASE_DIR = Path(__file__).resolve().parent
+
+DEBUG = True
+
+LOG_LEVEL = logging.INFO
+
+BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR)
 dotenv_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(dotenv_file):
@@ -63,3 +70,6 @@ OFFSET = 0
 LIMIT = 0
 INTERVAL = 1
 ISFEE = 0
+
+
+WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), 'settings.py']

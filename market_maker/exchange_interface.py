@@ -1,7 +1,7 @@
 import sys, os
-import settings
-import hotbit
-import logger
+from market_maker import settings
+from market_maker import hotbit
+from market_maker import logger
 
 class ExchangeInterface:
     def __init__(self):
@@ -27,7 +27,7 @@ class ExchangeInterface:
 
 
     def get_recent_orders(self):
-        return self.hotbit.get_recent_orders()
+        return self.hotbit.get_recent_ordersx()
     
     
     def get_highest_buy(self):
@@ -60,18 +60,19 @@ class ExchangeInterface:
         return self.hotbit.pending_orders()
     
     def cancel_order(self, order):
-        logger.info("Canceling: %s %d @ %.*f" % (order['side'], order['orderQty'], tickLog, order['price']))
+        logger.warning("Canceling: %s %d @ %.*f" % (order['side'], order['amount'], order['price']))
         return self.hotbit.order_cancel(order['id'])
     
     def cancel_all_orders(self):
-        logger.info("Resetting current position. Canceling all existing orders.")
-        
+        logger.warning("Resetting current position. Canceling all existing orders.")
         orders = self.hotbit.pending_orders()
         
         if len(orders):
             self.hotbit.bulk_cancel([order['id'] for order in orders])
     
     def cancel_bulk_orders(self, orders):
+        for order in orders:
+            logger.warning("Canceling: %s %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
         return self.hotbit.bulk_cancel([order['id'] for order in orders])
     
     def get_order_book(self):

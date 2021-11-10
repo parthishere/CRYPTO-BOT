@@ -2,7 +2,7 @@ import requests
 from pathlib import Path
 import dotenv, hashlib, os, datetime, time
 
-import settings
+from market_maker import settings
 
 SERVER_TIME = "https://api.hotbit.io/api/v1/server.time"
 BALANCE_QUERY = "https://api.hotbit.io/api/v1/balance.query"
