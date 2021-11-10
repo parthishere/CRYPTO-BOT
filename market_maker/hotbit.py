@@ -29,8 +29,8 @@ ALLTICKER = "https://api.hotbit.io/api/v1/allticker" # obtain the latest trading
 HEADERS = {'Content-type': 'application/x-www-form-urlencoded'}
 
 
-class Hotbit:
-    def __init__(self, api_key, secret_key, symbol):
+class Hotbit():
+    def __init__(self, api_key=None, secret_key=None, symbol=None):
         self.BASE_DIR = Path(__file__).resolve().parent
         dotenv_file = os.path.join(self.BASE_DIR, ".env")
         if os.path.isfile(dotenv_file):
@@ -41,7 +41,7 @@ class Hotbit:
 
         self.SECRET_KEY = secret_key if secret_key is not None else os.environ['secret_key']
         self.API_KEY = api_key if api_key is not None else os.environ['api_key']
-        self.SYMBOL = symbol if symbol is not None else os.environ['symbol']
+        self.SYMBOL = symbol if symbol is not None else os.environ['assets']
 
         RAW = str("api_key={}&assets={}&secret_key={}".format(self.API_KEY, self.SYMBOL, self.SECRET_KEY))
         SIGN.update(RAW.encode('utf-8'))
@@ -49,16 +49,13 @@ class Hotbit:
 
         self.SIGN = str(SIGN.hexdigest()).upper()
         
-        if symbol is None:
-            self.symbol = settings.symbol
-            self.market = settings.market
-            self.market = settings.market
-            self.symbol = settings.symbol
+        # if symbol is None:
+        #     self.symbol = settings.symbol
+        #     self.market = settings.market
+        #     self.market = settings.market
             
-        self.symbol = settings.symbol
-        self.market = settings.market
-        self.markets = settings.markets
-        self.symbol = settings.symbol
+        self.symbol = settings.ASSETS
+        self.market = settings.MARKET
 
     def get_server_time():
         return requests.get(SERVER_TIME).json()
@@ -114,7 +111,8 @@ class Hotbit:
         """
         if not market:
             market = settings.MARKET
-        repsponse = requests.get("{}?market={}&period={}".format(MARKET_STATUS, market, period))
+        response = requests.get("{}?market={}&period={}".format(MARKET_STATUS, market, period))
+        return response.json()
         
     def market_summery(self, markets=None):
         """ 
@@ -180,8 +178,11 @@ class Hotbit:
 
     def get_balance_query(self):
         '''
-        | Name of Method | Type of Method | Description |
-        | balance.query | post  | Obtain User Assets |  
+        {'error': None,
+        'result':
+            {'CTS': {'available': '21285.43',     'freeze': '0'}
+            },
+        'id': 19523998})  
         '''
         assets = ['CTS', 'ETH', 'BTC']
         parameter = 'api_key=34e2bb5d-2047-8ab1-67395b7934a798c3&assets=["CTS"]&sign=84EB6F6B2E85D76C9864CBA62ADB806B'
@@ -371,7 +372,7 @@ class Hotbit:
         response = requests.get("https://api.hotbit.io/api/v1/order.depth?market={}&limit={}&interval={}".format(market, limit, interval))
         return response.json()
     
-    def check_pending_orders(self,  market=None, offset=settings.OFFSET, limit=settings.LIMIT):
+    def pending_orders(self,  market=None, offset=settings.OFFSET, limit=settings.LIMIT):
         """
                 {
             "error":null,

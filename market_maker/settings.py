@@ -9,6 +9,8 @@ DEBUG = True
 
 LOG_LEVEL = logging.INFO
 
+BUY_AGGRESIVELY = False
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR)
 dotenv_file = os.path.join(BASE_DIR, ".env")
@@ -72,4 +74,4 @@ INTERVAL = 1
 ISFEE = 0
 
 
-WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), 'settings.py']
+WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py')]

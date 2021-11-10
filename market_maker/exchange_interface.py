@@ -1,21 +1,24 @@
 import sys, os
 from market_maker import settings
 from market_maker import hotbit
-from market_maker import logger
+import logging
 
-class ExchangeInterface:
+logging.basicConfig(level=settings.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
+
+
+class ExchangeInterface():
     def __init__(self):
         if len(sys.argv) > 1:
             self.symbol = sys.argv[1]
         else:
-            self.symbol = settings.SYMBOL
+            self.symbol = settings.ASSET
             
-        self.hotbit = hotbit.Hotbit(settings.API_KEY, settings.SECRET_KEY)
+        self.hotbit = hotbit.Hotbit(api_key=settings.API_KEY, secret_key=settings.SECRET_KEY, symbol=settings.ASSETS)
     
     def get_position(self, symbol=None):
         if symbol is None:
             symbol = self.symbol
-        self.hotbit.get_balance_query()[symbol]
+        return self.hotbit.get_balance_query()['result'][symbol]
     
     def get_delta(self, symbol=None):
         if symbol is None:
@@ -27,7 +30,7 @@ class ExchangeInterface:
 
 
     def get_recent_orders(self):
-        return self.hotbit.get_recent_ordersx()
+        return self.hotbit.get_recent_orders()
     
     
     def get_highest_buy(self):
@@ -60,20 +63,23 @@ class ExchangeInterface:
         return self.hotbit.pending_orders()
     
     def cancel_order(self, order):
-        logger.warning("Canceling: %s %d @ %.*f" % (order['side'], order['amount'], order['price']))
+        logging.warning("Canceling: %s %d @ %.*f" % (order['side'], order['amount'], order['price']))
         return self.hotbit.order_cancel(order['id'])
     
     def cancel_all_orders(self):
-        logger.warning("Resetting current position. Canceling all existing orders.")
+        logging.warning("Resetting current position. Canceling all existing orders.")
         orders = self.hotbit.pending_orders()
         
-        if len(orders):
-            self.hotbit.bulk_cancel([order['id'] for order in orders])
+        try:
+            if len(orders):
+                self.hotbit.bulk_cancel([order['id'] for order in orders])
+        except Exception as e:
+            print(e)
     
     def cancel_bulk_orders(self, orders):
         for order in orders:
-            logger.warning("Canceling: %s %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
+            logging.warning("Canceling: %s %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
         return self.hotbit.bulk_cancel([order['id'] for order in orders])
     
-    def get_order_book(self):
-        pass
+    def market_status(self, period=settings.LAST_VALUE_PERIOD):
+        return self.hotbit.market_status(period=period)

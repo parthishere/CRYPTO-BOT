@@ -6,23 +6,23 @@ from market_maker.exchange_interface import ExchangeInterface
 
 
 import os
-# watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
+watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
 
 
 
 class OrderManager:
     def __init__(self):
         self.exchange = ExchangeInterface()
-        # O```````````````````````````nce exchange is created, register exit handler that will always cancel orders
+        # Once exchange is created, register exit handler that will always cancel orders
         # on any error.
 
         logging.info("Using symbol %s." % self.exchange.symbol)
 
         logging.info("Order Manager initializing, connecting to BitMEX. Live run: executing real trades.")
 
-        self.start_time = datetime.now()
-        self.starting_qty = self.exchange.get_delta()
-        self.running_qty = self.starting_qty
+        self.start_time = datetime.datetime.now()
+        self.starting_qty = float(self.exchange.get_delta())
+        self.running_qty = float(self.starting_qty)
         self.reset()
 
     def reset(self):
@@ -37,27 +37,28 @@ class OrderManager:
 
         margin = self.exchange.get_margin()
         position = self.exchange.get_position()
-        self.running_qty = self.exchange.get_delta()
+        self.running_qty = float(self.exchange.get_delta())
 
-        logging.info("Current Contract Position: %d" % self.running_qty)
+        # logging.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logging.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
        
         logging.info("Contracts Traded This Run: %d" % (self.running_qty - self.starting_qty))
 
-    def get_price_offset(self, index):
+    def get_price_offset(self, index, order_pairs):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
            Negative is a buy, positive is a sell."""
         # Maintain existing spreads for max profit
         ############### CHECK THIS OUT ###############
-        if settings.BUY_AGGRESSIVELY:
+        prices = []
+        if settings.BUY_AGGRESIVELY:
             SPREAD = settings.MAX_SPREAD
         else:
             SPREAD = settings.MIN_SPREAD
         price = self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open']
-        if settings.MAINTAIN_SPREADS:
+        if settings.MAINTAIN_SPREAD:
             if self.get_highest_buy() > self.get_lowest_sell():
-                prices = []
+                
                 for i in range(1, settings.MAX_ORDER_PAIRS):
                     prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
@@ -68,7 +69,6 @@ class OrderManager:
                     
                 prices.sort()
             elif self.get_highest_buy() <= self.get_lowest_sell():
-                prices = []
                 for i in range(1, settings.MAX_ORDER_PAIRS):
                     # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
@@ -100,9 +100,9 @@ class OrderManager:
         #         sell_orders.append(self.prepare_order(i))
         # for fifteen days seconds are 15*24*60*60 = 1296000
         period = 1296000
-        result = self.exchange.market_status(period=1296000)['results']
-        last_fortnight_value = result['open']
-        recent_value = result['last']
+        result = self.exchange.market_status(period=1296000)
+        last_fortnight_value = result['result']['open']
+        recent_value = result['result']['last']
         
         recent_orders = self.exchange.get_recent_orders()
         results = recent_orders['result']
@@ -149,9 +149,9 @@ class OrderManager:
         # else:
         #     quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
-        for i in range(1, settings.MAX_ORDER_PAIRS+1):
+        for i in range(0, settings.MAX_ORDER_PAIRS):
             
-            orders.append({'price': prices[i], 'orderQty': amount, 'side': "buy" if index < 0 else "Sell"})
+            orders.append({'price': prices[i], 'orderQty': orderQty, 'side': "buy" if index < 0 else "sell"})
 
         
         print(orders)
@@ -203,7 +203,7 @@ class OrderManager:
 
         if len(to_amend) > 0:
             for amended_order in reversed(to_amend):
-                reference_order = [o for o in existing_orders if o['orderID'] == amended_order['orderID']][0]
+                reference_order = [o for o in existing_user_orders if o['orderID'] == amended_order['orderID']][0]
                 logging.info("Amending %4s: %d @ %.*f to %d @ %.*f (%+.*f)" % (
                     amended_order['side'],
                     reference_order['leavesQty'], tickLog, reference_order['price'],

@@ -1,4 +1,4 @@
-import importlib  
+from market_maker import ordermanager
+from market_maker import hotbit
 
-market_maker = importlib.import_module("market-maker")
-
+om = ordermanager.OrderManager()
