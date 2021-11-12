@@ -41,7 +41,7 @@ MARKET = "CTS/USDT"
 
 
 # Maintain gap between Buyers Volume and Sellers Volume
-MAINTAIN_SPREAD = False
+MAINTAIN_SPREAD = True
 # Max Spread
 MIN_SPREAD = 0.01
 # Min Spread
@@ -63,7 +63,9 @@ MAX_POSITION = 0
 MIN_POSITION = 0
 
 # How much price after decimal point.
-PRICE_PRECISION = 4
+PRICE_PRECISION = 8
+
+RELIST_INTERVAL = 2
 
 
 TIMEZONE = 'IST'

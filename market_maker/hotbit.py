@@ -78,7 +78,7 @@ class Hotbit():
     ## MARKET ##
     ############
     
-    def get_recent_orders(self, market=None, limit=100):
+    def get_trade_history(self, market=None, limit=1000):
         """
         {"error":null,
         "result":[{"id":3219750640,"time":1635931109,"price":"0.07278929","amount":"0.192","type":"sell"},
@@ -88,7 +88,7 @@ class Hotbit():
         """
         if market is None:
             market = settings.MARKET
-        response = requests.get("{}?market={}&limit={}&last_id=1".format(MARKET_DEALS, market, limit)).json()
+        response = requests.get("{}?market={}&limit={}&last_id=400".format(MARKET_DEALS, market, limit)).json()
         return response
     
     def market_status(self, period=10, market=None):
@@ -180,7 +180,8 @@ class Hotbit():
         '''
         {'error': None,
         'result':
-            {'CTS': {'available': '21285.43',     'freeze': '0'}
+            {'CTS': {'available': '21285.43',
+                'freeze': '0'}
             },
         'id': 19523998})  
         '''
@@ -206,12 +207,30 @@ class Hotbit():
                 return fn(self, *args, **kwargs)
         return wrapped
     
+    def get_recent_order_bids(self, market=settings.MARKET, limit=1000):
+        """ 
+        {"error":null,"result":{"limit":100,"offset":0,"total":62,"orders":[{"id":65026846809,"market":"ETHBTC","type":1,"side":1,"ctime":1636410981.387057,"mtime":1636410981.387057,"price":"0.07223","amount":"0.01","left":"0.01","deal_stock":"0","deal_money":"0","status":0},{"id":65008690302,"market":"ETHBTC","type":1,"side":1,"ctime":1636400949.443757,"mtime":1636400949.443757,"price":"0.07230001","amount":"0.003","left":"0.003","deal_stock":"0","deal_money":"0","status":0},
+        """
+        side = 2  # for buy
+        response = requests.get("{}?market={}&side=2&offset=0&limit={}".format(ORDER_BOOK, market, limit)).json()
+        return response
+     
+    def get_recent_order_sells(self, market=settings.MARKET, limit=1000):
+        """ 
+        {"error":null,"result":{"limit":100,"offset":0,"total":62,"orders":[{"id":65026846809,"market":"ETHBTC","type":1,"side":1,"ctime":1636410981.387057,"mtime":1636410981.387057,"price":"0.07223","amount":"0.01","left":"0.01","deal_stock":"0","deal_money":"0","status":0},{"id":65008690302,"market":"ETHBTC","type":1,"side":1,"ctime":1636400949.443757,"mtime":1636400949.443757,"price":"0.07230001","amount":"0.003","left":"0.003","deal_stock":"0","deal_money":"0","status":0},
+        """   
+        side = 1  # for sell
+        response = requests.get("{}?market={}&side=1&offset=0&limit={}".format(ORDER_BOOK, market, limit)).json()
+        return response
+        
+    
     def place_order(self, quantity, price, buy, sell):
         if price < 0:
             raise Exception("Price must be positive.")
         buy_orders = []
         sell_orders = []
-        
+    
+    @authentication_required    
     def sell(self, amount=0, price=0):
         """
         Response:
@@ -243,15 +262,19 @@ class Hotbit():
         }
         """
         side = 1 # 1 for sell and 2 for buy
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
-        response = requests.post(ORDER_PUT_LIMIT, data=params)
+        params = "api_key={}&sign={}&market={}&side=1&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, amount, price, settings.ISFEE)
+        response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
+        return response.json()
     
-    def buy(self, amount=0, price=0):
+    def buy(self, amount=0, price=0, market=settings.MARKET):
         side = 2 # 1 for sell and 2 for buy
-        if self.get_balance_query().get('result').get(settings.ASSET).get('available') < price*amount:
+        self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
+        print(type(self.available))
+        if float(self.available) < price*amount:
             print("dont have enough credit")
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, side, amount, price, settings.ISFEE)
-        response = requests.post(ORDER_PUT_LIMIT, data=params)
+        params = "api_key={}&sign={}&market={}&side=2&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, market, amount, price, settings.ISFEE)
+        response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
+        return response.json()
     
     def order_cancel(self, order_id=0):
         """

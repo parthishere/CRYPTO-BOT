@@ -3,6 +3,7 @@ from market_maker import settings
 from os.path import getmtime
 from logger import logging
 from market_maker.exchange_interface import ExchangeInterface
+from time import sleep
 
 
 import os
@@ -19,10 +20,20 @@ class OrderManager:
         logging.info("Using symbol %s." % self.exchange.symbol)
 
         logging.info("Order Manager initializing, connecting to BitMEX. Live run: executing real trades.")
-
+        if settings.DEBUG:
+            logging.info("Initializing dry run. Orders printed below represent what would be posted to Hotbit.")
+        else:
+            logging.info("Order Manager initializing, connecting to Hotbit. Live run: executing real trades.")
+        
         self.start_time = datetime.datetime.now()
         self.starting_qty = float(self.exchange.get_delta())
         self.running_qty = float(self.starting_qty)
+        
+        self.get_lowest_sell = self.exchange.get_lowest_sell()
+        self.get_highest_buy = self.exchange.get_highest_buy()
+        logging.info("highest bid = %f", self.get_highest_buy)
+        logging.info("lowest sell = %f", self.get_lowest_sell)
+        
         self.reset()
 
     def reset(self):
@@ -55,29 +66,33 @@ class OrderManager:
             SPREAD = settings.MAX_SPREAD
         else:
             SPREAD = settings.MIN_SPREAD
-        price = self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open']
+        price = float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open'])
         if settings.MAINTAIN_SPREAD:
-            if self.get_highest_buy() > self.get_lowest_sell():
+            if self.get_highest_buy > self.get_lowest_sell:
                 
-                for i in range(1, settings.MAX_ORDER_PAIRS):
+                for i in range(0, order_pairs):
                     prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
-                    if prices[i] > self.get_highest_buy():
-                        prices[i] = self.get_highest_buy() if settings.MAINTAIN_SPREAD else self.get_highest_buy() + self.get_highest_buy()*settings.SPREAD / 100
-                    if price[i] < self.get_lowest_sell():
-                        prices[i] = self.get_lowest_sell()
+                    if prices[i] > self.get_highest_buy:
+                        prices[i] = self.get_highest_buy if settings.MAINTAIN_SPREAD else self.get_highest_buy + self.get_highest_buy*settings.SPREAD / 100
+                    if price[i] < self.get_lowest_sell:
+                        prices[i] = self.get_lowest_sell
                     
                 prices.sort()
-            elif self.get_highest_buy() <= self.get_lowest_sell():
-                for i in range(1, settings.MAX_ORDER_PAIRS):
+            elif self.get_highest_buy <= self.get_lowest_sell:
+                for i in range(0, order_pairs):
                     # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
                     # or
                     prices.append(round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION))
-                    if prices[i] < self.get_lowest_sell():
+                    if prices[i] < self.get_lowest_sell:
                         prices[i] = round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION)
 
                 prices.sort()
+            
+        else:
+            pass
+        print(prices)
         return prices
 
     ###
@@ -101,24 +116,28 @@ class OrderManager:
         # for fifteen days seconds are 15*24*60*60 = 1296000
         period = 1296000
         result = self.exchange.market_status(period=1296000)
-        last_fortnight_value = result['result']['open']
-        recent_value = result['result']['last']
+        last_fortnight_value = float(result['result']['open'])
+        recent_value = float(result['result']['last'])
+        previous_value =  float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
         
-        recent_orders = self.exchange.get_recent_orders()
-        results = recent_orders['result']
+        recent_buy_orders = self.exchange.get_recent_order_bids()['result']['orders']
+        recent_sell_orders = self.exchange.get_recent_order_sells()['result']['orders']
         bid_amount = 0
         sell_amount = 0
-        for result in results:
-            if result['type'] == "buy":
+        for result in recent_buy_orders:
+            if result['side'] == 2:    # 2 for buy
                 bid_amount += float(result['amount'])
-            else:
+        for result in recent_sell_orders:
+            if result['side'] == 1:
                 sell_amount += float(result['amount'])
-        if bid_amount > sell_amount:
+        
+        logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
+        if bid_amount > sell_amount or (previous_value < recent_value):
             print("buyer is greater than seller sell some volume")
             change = bid_amount - sell_amount
             index = 1 # 1 for selling
             buy_orders = self.prepare_order(index, amount=change)
-        elif bid_amount < sell_amount:
+        elif bid_amount < sell_amount or (previous_value > recent_value):
             print("seller are grater than buyer, buy some volume..")
             change = sell_amount - bid_amount
             index = -1 # -1 for buying
@@ -142,7 +161,7 @@ class OrderManager:
 
     def prepare_order(self, index, amount):
         """Create an order object."""
-        orderQty = amount / settings.MAX_ORDER_PAIRS if settings.BUY_AGGRESIVELY else amount - amount*settings.MAX_SPREAD / settings.MAX_ORDER_PAIRS
+        orderQty = (amount / settings.MAX_ORDER_PAIRS) 
         orders = []
         # if settings.RANDOM_ORDER_SIZE is True:
         #     quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
@@ -153,7 +172,6 @@ class OrderManager:
             
             orders.append({'price': prices[i], 'orderQty': orderQty, 'side': "buy" if index < 0 else "sell"})
 
-        
         print(orders)
         return orders
 
@@ -164,6 +182,7 @@ class OrderManager:
 
         # tickLog = self.exchange.get_instrument()['tickLog']
         to_amend = []
+        repeated_order = []
         to_create = []
         to_cancel = []
         buys_matched = 0
@@ -173,24 +192,28 @@ class OrderManager:
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
         for order in existing_user_orders:
-            try:
-                if order['side'] == 'buy':
-                    desired_order = buy_orders[buys_matched]
-                    buys_matched += 1
-                else:
+            
+            desired_order = None
+            if order['side'] == 1:   # 1-Seller，2-buyer
+                # for seller
+                if len(sell_orders):
                     desired_order = sell_orders[sells_matched]
-                    sells_matched += 1
-
-                # Found an existing order. Do we need to amend it?
-                if desired_order['orderQty'] != order['volume'] or (
-                        # If price has changed, and the change is more than our RELIST_INTERVAL, amend.
-                        desired_order['price'] != order['price'] and
-                        abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                    to_amend.append({'orderID': order['orderID'], 'orderQty': order['cumQty'] + desired_order['orderQty'],
-                                     'price': desired_order['price'], 'side': order['side']})
-            except Exception as e:
-                # Will throw if there isn't a desired order to match. In that case, cancel it.
-                print(e)
+                    sells_matched +=1
+                else:
+                    logging.info("previously sell orders were placed now buy orders are being placed")
+                    
+            if order['side'] == 2:   # 1-Seller，2-buyer
+                # for buyer
+                if len(buy_orders):
+                    desired_order = buy_orders[sells_matched]
+                    buys_matched +=1
+                else:
+                    logging.info("previously sell orders were placed now buy orders are being placed")
+                    
+            if desired_order['amount'] != order['left'] or (abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
+                to_amend.append({'id': order['id'], 'amount': order['left'] + desired_order['amount'],
+                                    'price': desired_order['price'], 'side': order['side']})
+                
                 to_cancel.append(order)
 
         while buys_matched < len(buy_orders):
@@ -200,36 +223,15 @@ class OrderManager:
         while sells_matched < len(sell_orders):
             to_create.append(sell_orders[sells_matched])
             sells_matched += 1
-
-        if len(to_amend) > 0:
-            for amended_order in reversed(to_amend):
-                reference_order = [o for o in existing_user_orders if o['orderID'] == amended_order['orderID']][0]
-                logging.info("Amending %4s: %d @ %.*f to %d @ %.*f (%+.*f)" % (
-                    amended_order['side'],
-                    reference_order['leavesQty'], tickLog, reference_order['price'],
-                    (amended_order['orderQty'] - reference_order['cumQty']), tickLog, amended_order['price'],
-                    tickLog, (amended_order['price'] - reference_order['price'])
-                ))
-            # This can fail if an order has closed in the time we were processing.
-            # The API will send us `invalid ordStatus`, which means that the order's status (Filled/Canceled)
-            # made it not amendable.
-            # If that happens, we need to catch it and re-tick.
-            try:
-                self.exchange.amend_bulk_orders(to_amend)
-            except requests.exceptions.HTTPError as e:
-                errorObj = e.response.json()
-                if errorObj['error']['message'] == 'Invalid ordStatus':
-                    logging.warning("Amending failed. Waiting for order data to converge and retrying.")
-                    sleep(0.5)
-                    return self.place_orders()
-                else:
-                    logging.error("Unknown error on amend: %s. Exiting" % errorObj)
-                    sys.exit(1)
+            
+        if len(buy_orders) or len(sell_orders):
+            for o in to_amend:
+                to_create.append(o)
 
         if len(to_create) > 0:
             logging.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
-                logging.info("%4s %d @ %.*f" % (order['side'], order['orderQty'], tickLog, order['price']))
+                logging.info("%4s %d @ %.*f" % (order['side'], order['amount'], order['price']))
                 if settings.DEBUG:
                     var = str(input("input 'Yes' for further process :"))
                     if var == "Yes":
@@ -280,21 +282,21 @@ class OrderManager:
         """Perform checks before placing orders."""
 
         # Check if OB is empty - if so, can't quote.
-        self.exchange.check_if_orderbook_empty()
+        # self.exchange.check_if_orderbook_empty()
 
-        # Ensure market is still open.
-        self.exchange.check_market_open()
+        # # Ensure market is still open.
+        # self.exchange.check_market_open()
 
         # Get ticker, which sets price offsets and prints some debugging info.
         # ticker = self.get_ticker()
 
         # Sanity check:
-        if self.get_price_offset(-1) >= ticker["sell"] or self.get_price_offset(1) <= ticker["buy"]:
-            logging.error("Buy: %s, Sell: %s" % (self.start_position_buy, self.start_position_sell))
-            logging.error("First buy position: %s\nBitMEX Best Ask: %s\nFirst sell position: %s\nBitMEX Best Bid: %s" %
-                         (self.get_price_offset(-1), ticker["sell"], self.get_price_offset(1), ticker["buy"]))
-            logging.error("Sanity check failed, exchange data is inconsistent")
-            self.exit()
+        # if self.get_price_offset(-1) >= ticker["sell"] or self.get_price_offset(1) <= ticker["buy"]:
+        #     logging.error("Buy: %s, Sell: %s" % (self.start_position_buy, self.start_position_sell))
+        #     logging.error("First buy position: %s\nBitMEX Best Ask: %s\nFirst sell position: %s\nBitMEX Best Bid: %s" %
+        #                  (self.get_price_offset(-1), ticker["sell"], self.get_price_offset(1), ticker["buy"]))
+        #     logging.error("Sanity check failed, exchange data is inconsistent")
+        #     self.exit()
 
         # Messaging if the position limits are reached
         if self.long_position_limit_exceeded():
