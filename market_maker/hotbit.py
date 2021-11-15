@@ -31,23 +31,10 @@ HEADERS = {'Content-type': 'application/x-www-form-urlencoded'}
 
 class Hotbit():
     def __init__(self, api_key=None, secret_key=None, symbol=None):
-        self.BASE_DIR = Path(__file__).resolve().parent
-        dotenv_file = os.path.join(self.BASE_DIR, ".env")
-        if os.path.isfile(dotenv_file):
-            dotenv.load_dotenv(dotenv_file)
-
-        hashlib.md5().digest()
-        SIGN = hashlib.md5()
 
         self.SECRET_KEY = secret_key if secret_key is not None else os.environ['secret_key']
         self.API_KEY = api_key if api_key is not None else os.environ['api_key']
         self.SYMBOL = symbol if symbol is not None else os.environ['assets']
-
-        RAW = str("api_key={}&assets={}&secret_key={}".format(self.API_KEY, self.SYMBOL, self.SECRET_KEY))
-        SIGN.update(RAW.encode('utf-8'))
-        SIGN.digest()
-
-        self.SIGN = str(SIGN.hexdigest()).upper()
         
         # if symbol is None:
         #     self.symbol = settings.symbol
@@ -166,17 +153,23 @@ class Hotbit():
     def get_account_status(self):
         pass
     
-    def get_balance_history(self, business, start_time, end_time, offset, limit):
+    def get_balance_history(self, business=None, start_time=0, end_time=get_epoch_now(), offset=0, limit=100, asset=settings.ASSET):
         '''
         
         '''
         if not business:
             business="deposit"
-        parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, settings.ASSET, business, start_time, end_time, offset, limit)
-        response = requests.post(BALANCE_HISTORY, data=parameter_for_history )
+        else:
+            if not (business == "trade" or business == "deposite"):
+                business="deposit"
+            
+                
+        sign = self.get_sign(api_key=settings.API_KEY, assets=asset, business=business, start_time=start_time, end_time=end_time, offset=offset, limit=limit, secret_key=settings.SECRET_KEY)
+        parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, sign, asset, business, start_time, end_time, offset, limit)
+        response = requests.post(BALANCE_HISTORY, data=parameter_for_history)
         return response.json()
 
-    def get_balance_query(self):
+    def get_balance_query(self, assets=settings.ASSET):
         '''
         {'error': None,
         'result':
@@ -185,9 +178,11 @@ class Hotbit():
             },
         'id': 19523998})  
         '''
-        assets = ['CTS', 'ETH', 'BTC']
-        parameter = 'api_key=34e2bb5d-2047-8ab1-67395b7934a798c3&assets=["CTS"]&sign=84EB6F6B2E85D76C9864CBA62ADB806B'
-        response = requests.post(BALANCE_QUERY, data=parameter)
+
+        sign = self.get_sign(api_key=settings.API_KEY, assets=settings.ASSET, secret_key=settings.SECRET_KEY)
+        parameter = str(f'api_key={settings.API_KEY}&assets=["{assets}"]&sign={settings.SIGN}')
+        response = requests.post(BALANCE_QUERY, data=parameter, headers=HEADERS)
+        print(parameter)
         return response.json()
 
     def check_market_open(self):
@@ -231,7 +226,7 @@ class Hotbit():
         sell_orders = []
     
     @authentication_required    
-    def sell(self, amount=0, price=0):
+    def sell(self, amount=0, price=0, market=settings.MARKET, isfee=settings.ISFEE):
         """
         Response:
         {
@@ -262,21 +257,29 @@ class Hotbit():
         }
         """
         side = 1 # 1 for sell and 2 for buy
-        params = "api_key={}&sign={}&market={}&side=1&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, amount, price, settings.ISFEE)
+        self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
+        print(type(self.available))
+        if float(self.available) < price*amount:
+            print("dont have enough credit")
+            
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, side=side, amount=amount, price=price, isfee=isfee, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&side=1&amount={}&price={}&isfee={}".format(settings.API_KEY, sign, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
         return response.json()
     
-    def buy(self, amount=0, price=0, market=settings.MARKET):
+    def buy(self, amount=0, price=0, market=settings.MARKET, isfee=settings.ISFEE):
         side = 2 # 1 for sell and 2 for buy
         self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
         print(type(self.available))
         if float(self.available) < price*amount:
             print("dont have enough credit")
-        params = "api_key={}&sign={}&market={}&side=2&amount={}&price={}&isfee={}".format(settings.API_KEY, settings.SIGN, market, amount, price, settings.ISFEE)
+            
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, side=side, amount=amount, price=price, isfee=isfee, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, sign, market, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
         return response.json()
     
-    def order_cancel(self, order_id=0):
+    def order_cancel(self, market=settings.MARKET, order_id=0):
         """
         {
             "error": null,
@@ -305,10 +308,11 @@ class Hotbit():
             "id": 1521169460
         }
         """
-        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, order_id=order_id, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, sign, settings.MARKET, order_id)
         response = requests.post(ORDER_CANCEL, data=params)
 
-    def bulk_cancel(self, orders_id=[0]):
+    def bulk_cancel(self, orders_id=[0], market=settings.MARKET):
         """
         Response:
         {
@@ -349,10 +353,12 @@ class Hotbit():
         }
 
         """
-        params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, orders_id)
-        response = requests.post(ORDER_BULK_CANCEL, data=params)
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, orders_id=orders_id, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, sign, settings.MARKET, orders_id)
+        response = requests.post(ORDER_BULK_CANCEL, data=params).json()
+        return response
 
-    def order_detail(self, order_id=0, offset=settings.OFFSET):
+    def order_detail(self, market=settings.MARKET, order_id=1, offset=settings.OFFSET):
         """
         Response:
         {
@@ -388,8 +394,10 @@ class Hotbit():
             "id": 1521169460
         }
         """
-        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, order_id)
+        sign = self.get_sign(api_key=settings.API_KEY, market=market,order_id=order_id, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, sign, settings.MARKET, order_id)
         response = requests.post(ORDER_DEALS, data=params)
+        return response.json()
         
     def order_depth(self, market=settings.MARKET, limit=100, interval='1e-8'):
         response = requests.get("https://api.hotbit.io/api/v1/order.depth?market={}&limit={}&interval={}".format(market, limit, interval))
@@ -435,10 +443,12 @@ class Hotbit():
         """
         if market == None:
             market = settings.MARKET
-        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, settings.SIGN, market, offset, limit)
-        response = requests.post(ORDER_PENDING, data=params)
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, offset=offset, limit=limit, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&offset={}&limit={}".format(settings.API_KEY, sign, market, offset, limit)
+        response = requests.post(ORDER_PENDING, data=params, headers=HEADERS)
+        return response.json()
         
-    def order_finished(self, start_time, end_time, offset, limit, side):
+    def order_finished(self, market=settings.MARKET, start_time=0, end_time=get_epoch_now(), offset=0, limit=100, side=1):
         """
         Response:
         {
@@ -451,7 +461,7 @@ class Hotbit():
                 "market": "YCCETH",
                 "source": "test",
                 "type": 1,
-                "side": 2,
+                "side": 2,      # 1 = "sell"，2="buy"
                 "price": "0.0000509",
                 "amount": "1",
                 "taker_fee": "0.001",
@@ -466,13 +476,35 @@ class Hotbit():
             "id": 1536050997
         }
         """
-        params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, settings.SIGN, settings.MARKET, start_time, end_time, offset, limit, side)
+        if not market:
+            market = self.market
+        sign = self.get_sign(api_key=settings.API_KEY, market=market, start_time=start_time, end_time=end_time, offset=offset, limit=limit, side=side, secret_key=settings.SECRET_KEY)
+        params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, sign, settings.MARKET, start_time, end_time, offset, limit, side)
         reponse = requests.post(ORDER_FINISHED_DETAIL, data=params)
     
 
     def get_crypto_price(self, market=None):    
         CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
         return CRYPTO_CURRENT_VALUE
+    
+    def get_sign(self, *args, **kwargs):
+        
+        arguments_list = sorted(kwargs)
+        sign_unhashed=""
+        for arg in arguments_list:
+            sign_unhashed += f"{arg}={kwargs[arg]}&"  
+        sign_unhashed = sign_unhashed[:-1]
+        
+        hashlib.md5().digest()
+        SIGN = hashlib.md5()
+        RAW = sign_unhashed
+        SIGN.update(RAW.encode('utf-8'))
+        SIGN.digest()
+        #########################################
+
+        SIGN = str(SIGN.hexdigest()).upper()
+        return SIGN
+    
  
  
 class AuthenticationError(Exception):

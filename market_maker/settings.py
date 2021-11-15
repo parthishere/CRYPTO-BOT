@@ -11,6 +11,7 @@ LOG_LEVEL = logging.INFO
 
 BUY_AGGRESIVELY = False
 
+
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR)
 dotenv_file = os.path.join(BASE_DIR, ".env")
@@ -20,22 +21,13 @@ if os.path.isfile(dotenv_file):
 
 SECRET_KEY = os.environ['secret_key']
 API_KEY = os.environ['api_key']
-ASSETS = os.environ['assets']
+ASSETS = os.environ['assets'] or ["CTS/USDT"]
 
-#########################################
-hashlib.md5().digest()
-SIGN = hashlib.md5()
-RAW = str("api_key={}&assets={}&secret_key={}".format(API_KEY, ASSETS, SECRET_KEY))
-SIGN.update(RAW.encode('utf-8'))
-SIGN.digest()
-#########################################
-
-SIGN = str(SIGN.hexdigest()).upper()
 
 INPUT_LOWER_RANGE = 1.15131
 INPUT_UPPER_RANGE = 1.151
 
-ASSETS = ["CTS/USDT"]
+
 ASSET = "CTS"
 MARKET = "CTS/USDT"
 
@@ -45,7 +37,9 @@ MAINTAIN_SPREAD = True
 # Max Spread
 MIN_SPREAD = 0.01
 # Min Spread
-MAX_SPREAD = 0.05
+MAX_SPREAD = 0.5
+# In Percent means at what threshold should we start buying or selling
+FLUCTUATION = 5  
 
 # last open value of crypto before LAST_VALUE_PERIOD seconds
 LAST_VALUE_PERIOD = 5 

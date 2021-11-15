@@ -84,9 +84,9 @@ class OrderManager:
                     # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
                     # or
-                    prices.append(round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION))
+                    prices.append(round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION))
                     if prices[i] < self.get_lowest_sell:
-                        prices[i] = round(self.get_lowest_sell + self.get_lowest_sell*SPREAD/100, settings.PRICE_PRECISION)
+                        prices[i] = round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
 
                 prices.sort()
             
@@ -124,6 +124,8 @@ class OrderManager:
         recent_sell_orders = self.exchange.get_recent_order_sells()['result']['orders']
         bid_amount = 0
         sell_amount = 0
+        buy_orders = None
+        sell_orders = None                  
         for result in recent_buy_orders:
             if result['side'] == 2:    # 2 for buy
                 bid_amount += float(result['amount'])
@@ -132,29 +134,30 @@ class OrderManager:
                 sell_amount += float(result['amount'])
         
         logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
-        if bid_amount > sell_amount or (previous_value < recent_value):
-            print("buyer is greater than seller sell some volume")
-            change = bid_amount - sell_amount
-            index = 1 # 1 for selling
-            buy_orders = self.prepare_order(index, amount=change)
-        elif bid_amount < sell_amount or (previous_value > recent_value):
-            print("seller are grater than buyer, buy some volume..")
-            change = sell_amount - bid_amount
-            index = -1 # -1 for buying
-            sell_orders = self.prepare_order(index, amount=change)
+        if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION:
+            if bid_amount > sell_amount or (previous_value < recent_value):
+                print("buyer is greater than seller sell some volume")
+                change = bid_amount - sell_amount
+                index = 1 # 1 for selling
+                buy_orders = self.prepare_order(index, amount=change)
+            elif bid_amount < sell_amount or (previous_value > recent_value):
+                print("seller are grater than buyer, buy some volume..")
+                change = sell_amount - bid_amount
+                index = -1 # -1 for buying
+                sell_orders = self.prepare_order(index, amount=change)
             
-        else:
-            # if settings.BUY_AGGRESIVELY:
-            #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-            #         index = -1 # -1 for buying
-            #         print("buyer are equal to seller, buying aggresively")
-            # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
-            # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-            #         index = 1 # 1 for selling
-            #         print("buyer are equal to seller, buying aggresively")
-            # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
-            # else:
-            print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
+            else:
+                # if settings.BUY_AGGRESIVELY:
+                #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+                #         index = -1 # -1 for buying
+                #         print("buyer are equal to seller, buying aggresively")
+                # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+                # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+                #         index = 1 # 1 for selling
+                #         print("buyer are equal to seller, buying aggresively")
+                # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+                # else:
+                print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
                 
 
         return self.converge_orders(buy_orders, sell_orders)
