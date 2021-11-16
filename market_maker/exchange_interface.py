@@ -18,12 +18,13 @@ class ExchangeInterface():
     def get_position(self, symbol=None):
         if symbol is None:
             symbol = self.symbol
-        return self.hotbit.get_balance_query()['result'][symbol]
+        return self.hotbit.get_balance_query()['result']
     
     def get_delta(self, symbol=None):
         if symbol is None:
             symbol = self.symbol
-        return float(self.get_position(symbol)['available'])
+        
+        return float(self.get_position().get(symbol).get('available'))
     
     def get_instrument(self):
         pass
@@ -71,6 +72,11 @@ class ExchangeInterface():
         return self.hotbit.pending_orders()
     
     def cancel_order(self, order):
+        pending_orders = self.get_pending_orders().get('result').get(self.symbol).get('records')
+        cancel_order = []
+        for o in pending_orders:
+            if o.get('id') == 'web':
+                cancel_order.append()
         logging.warning("Canceling:%d %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
         return self.hotbit.order_cancel(order['id'])
     

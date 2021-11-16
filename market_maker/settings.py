@@ -65,9 +65,10 @@ RELIST_INTERVAL = 2
 TIMEZONE = 'IST'
 DEFAULT_BUSINESS= "deposit"
 OFFSET = 0
-LIMIT = 0
+LIMIT = 100
 INTERVAL = 1
-ISFEE = 0
+ISFEE = 1
 
+LOOP_INTERVAL = 1
 
 WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py')]

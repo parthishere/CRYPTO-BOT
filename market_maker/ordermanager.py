@@ -1,8 +1,9 @@
 import datetime, sys, math, random
 from market_maker import settings
+from .exchange_interface import ExchangeInterface
+    
 from os.path import getmtime
 from logger import logging
-from market_maker.exchange_interface import ExchangeInterface
 from time import sleep
 
 
@@ -46,7 +47,7 @@ class OrderManager:
     def print_status(self):
         """Print the current MM status."""
 
-        margin = self.exchange.get_margin()
+        margin = self.exchange.get_delta()
         position = self.exchange.get_position()
         self.running_qty = float(self.exchange.get_delta())
 
@@ -143,7 +144,7 @@ class OrderManager:
             elif bid_amount < sell_amount or (previous_value > recent_value):
                 print("seller are grater than buyer, buy some volume..")
                 change = sell_amount - bid_amount
-                index = -1 # -1 for buying
+                index = 2 # -1 for buying
                 sell_orders = self.prepare_order(index, amount=change)
             
             else:
@@ -173,7 +174,7 @@ class OrderManager:
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
         for i in range(0, settings.MAX_ORDER_PAIRS):
             
-            orders.append({'price': prices[i], 'orderQty': orderQty, 'side': "buy" if index < 0 else "sell"})
+            orders.append({'price': prices[i], 'orderQty': orderQty, 'side': index})
 
         print(orders)
         return orders
@@ -190,51 +191,61 @@ class OrderManager:
         to_cancel = []
         buys_matched = 0
         sells_matched = 0
-        existing_user_orders = self.exchange.get_pending_orders()
+        existing_user_orders = []
+        try:
+            existing_user_orders = self.exchange.get_pending_orders().get('result').get(self.exchange.symbol).get('records')
+        except:
+            pass
+        
+
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
-        for order in existing_user_orders:
-            
-            desired_order = None
-            if order['side'] == 1:   # 1-Seller，2-buyer
-                # for seller
-                if len(sell_orders):
-                    desired_order = sell_orders[sells_matched]
-                    sells_matched +=1
-                else:
-                    logging.info("previously sell orders were placed now buy orders are being placed")
-                    
-            if order['side'] == 2:   # 1-Seller，2-buyer
-                # for buyer
-                if len(buy_orders):
-                    desired_order = buy_orders[sells_matched]
-                    buys_matched +=1
-                else:
-                    logging.info("previously sell orders were placed now buy orders are being placed")
-                    
-            if desired_order['amount'] != order['left'] or (abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                to_amend.append({'id': order['id'], 'amount': order['left'] + desired_order['amount'],
-                                    'price': desired_order['price'], 'side': order['side']})
+        if len(existing_user_orders):
+            for order in existing_user_orders:
                 
-                to_cancel.append(order)
+                desired_order = None
+                if order['side'] == 1 or order['side'] == '1':   # 1-Seller，2-buyer
+                    # for seller
+                    if len(sell_orders):
+                        desired_order = sell_orders[sells_matched]
+                        sells_matched +=1
+                    else:
+                        logging.info("previously sell orders were placed now buy orders are being placed")
+                        
+                if order['side'] == 2 or order['side'] == '2':   # 1-Seller，2-buyer
+                    # for buyer
+                    if len(buy_orders):
+                        desired_order = buy_orders[sells_matched]
+                        buys_matched +=1
+                    else:
+                        logging.info("previously sell orders were placed now buy orders are being placed")
+                        
+                if desired_order['amount'] != order['left'] or (abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
+                    to_amend.append({'id': order['id'], 'amount': order['left'] + desired_order['amount'],
+                                        'price': desired_order['price'], 'side': order['side']})
+                    
+                    to_cancel.append(order)
+        else:
+            to_create.append(buy_orders if buy_orders else sell_orders)
+        
+        if to_create is []:
+            while buys_matched < len(buy_orders):
+                to_create.append(buy_orders[buys_matched])
+                buys_matched += 1
 
-        while buys_matched < len(buy_orders):
-            to_create.append(buy_orders[buys_matched])
-            buys_matched += 1
-
-        while sells_matched < len(sell_orders):
-            to_create.append(sell_orders[sells_matched])
-            sells_matched += 1
-            
-        if len(buy_orders) or len(sell_orders):
-            for o in to_amend:
-                to_create.append(o)
+            while sells_matched < len(sell_orders):
+                to_create.append(sell_orders[sells_matched])
+                sells_matched += 1
+                
+            if len(buy_orders) or len(sell_orders):
+                for o in to_amend:
+                    to_create.append(o)
 
         if len(to_create) > 0:
             logging.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
-                logging.info("%4s %d @ %.*f" % (order['side'], order['amount'], order['price']))
+                logging.info("%d %d @ %d" % (order['side'], order['amount'], order['price']))
                 if settings.DEBUG:
                     var = str(input("input 'Yes' for further process :"))
                     if var == "Yes":
@@ -248,7 +259,7 @@ class OrderManager:
         if len(to_cancel) > 0:
             logging.info("Canceling %d orders:" % (len(to_cancel)))
             for order in reversed(to_cancel):
-                logging.info("%4s %d @ %.*f" % (order['side'], order['leavesQty'], tickLog, order['price']))
+                logging.info("%d %d @ %d" % (order['side'], order['amount'], order['price']))
             if settings.DEBUG:
                 var = str(input("input 'Yes' for further process :"))
                 if var == "Yes":
@@ -267,15 +278,16 @@ class OrderManager:
         """Returns True if the short position limit is exceeded"""
         if not settings.CHECK_POSITION_LIMITS:
             return False
-        position = self.exchange.get_delta()
+        position = float(self.exchange.get_delta())
         return position <= settings.MIN_POSITION
 
     def long_position_limit_exceeded(self):
         """Returns True if the long position limit is exceeded"""
         if not settings.CHECK_POSITION_LIMITS:
             return False
-        position = self.exchange.get_delta()
+        position = float(self.exchange.get_delta())
         return position >= settings.MAX_POSITION
+    
 
     ###
     # Sanity
@@ -303,13 +315,13 @@ class OrderManager:
 
         # Messaging if the position limits are reached
         if self.long_position_limit_exceeded():
-            logging.info("Long delta limit exceeded")
-            logging.info("Current Position: %.f, Maximum Position: %.f" %
+            logging.warning("Long delta limit exceeded")
+            logging.warning("Current Position: %.f, Maximum Position: %.f" %
                         (self.exchange.get_delta(), settings.MAX_POSITION))
 
         if self.short_position_limit_exceeded():
-            logging.info("Short delta limit exceeded")
-            logging.info("Current Position: %.f, Minimum Position: %.f" %
+            logging.warning("Short delta limit exceeded")
+            logging.warning("Current Position: %.f, Minimum Position: %.f" %
                         (self.exchange.get_delta(), settings.MIN_POSITION))
 
     ###########
@@ -356,6 +368,9 @@ class OrderManager:
     def restart(self):
         logging.info("Restarting the market maker...")
         os.execv(sys.executable, [sys.executable] + sys.argv)
+        
+    def check_connection(self):
+        return True if len(self.exchange.get_position()) is not None else False
 
 
 

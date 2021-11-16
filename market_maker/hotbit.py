@@ -160,7 +160,7 @@ class Hotbit():
         if not business:
             business="deposit"
         else:
-            if not (business == "trade" or business == "deposite"):
+            if not (business == "trade" or business == "deposit"):
                 business="deposit"
             
                 
@@ -169,7 +169,7 @@ class Hotbit():
         response = requests.post(BALANCE_HISTORY, data=parameter_for_history)
         return response.json()
 
-    def get_balance_query(self, assets=settings.ASSET):
+    def get_balance_query(self, assets=None):
         '''
         {'error': None,
         'result':
@@ -178,11 +178,11 @@ class Hotbit():
             },
         'id': 19523998})  
         '''
-
-        sign = self.get_sign(api_key=settings.API_KEY, assets=settings.ASSET, secret_key=settings.SECRET_KEY)
-        parameter = str(f'api_key={settings.API_KEY}&assets=["{assets}"]&sign={settings.SIGN}')
+        if assets == None:
+            assets = []
+        sign = self.get_sign(api_key=settings.API_KEY, assets=assets, secret_key=settings.SECRET_KEY)
+        parameter = str(f'api_key={settings.API_KEY}&assets={assets}&sign={sign}')
         response = requests.post(BALANCE_QUERY, data=parameter, headers=HEADERS)
-        print(parameter)
         return response.json()
 
     def check_market_open(self):
@@ -195,7 +195,7 @@ class Hotbit():
     def authentication_required(fn):
         """Annotation for methods that require auth."""
         def wrapped(self, *args, **kwargs):
-            if not (self.apiKey):
+            if not (self.API_KEY):
                 msg = "You must be authenticated to use this method"
                 raise AuthenticationError(msg)
             else:
@@ -258,24 +258,38 @@ class Hotbit():
         """
         side = 1 # 1 for sell and 2 for buy
         self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
-        print(type(self.available))
         if float(self.available) < price*amount:
             print("dont have enough credit")
+            return {}
             
-        sign = self.get_sign(api_key=settings.API_KEY, market=market, side=side, amount=amount, price=price, isfee=isfee, secret_key=settings.SECRET_KEY)
-        params = "api_key={}&sign={}&market={}&side=1&amount={}&price={}&isfee={}".format(settings.API_KEY, sign, amount, price, settings.ISFEE)
+        sign = self.get_sign(api_key=settings.API_KEY,
+                             market=market,
+                             side=side,
+                             amount=amount,
+                             price=price,
+                             isfee=isfee,
+                             secret_key=settings.SECRET_KEY)
+        print(sign)
+        params = "api_key={}&sign={}&market={}&side=1&amount={}&price={}&isfee={}".format(settings.API_KEY, sign, market, amount, price, settings.ISFEE)
         response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
         return response.json()
     
+    @authentication_required
     def buy(self, amount=0, price=0, market=settings.MARKET, isfee=settings.ISFEE):
         side = 2 # 1 for sell and 2 for buy
         self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
-        print(type(self.available))
         if float(self.available) < price*amount:
             print("dont have enough credit")
-            
-        sign = self.get_sign(api_key=settings.API_KEY, market=market, side=side, amount=amount, price=price, isfee=isfee, secret_key=settings.SECRET_KEY)
-        params = "api_key={}&sign={}&market={}&side={}&amount={}&price={}&isfee={}".format(settings.API_KEY, sign, market, amount, price, settings.ISFEE)
+            return {}
+        sign = self.get_sign(api_key=settings.API_KEY,
+                             market=market,
+                             side=side,
+                             amount=amount,
+                             price=price,
+                             isfee=isfee,
+                             secret_key=settings.SECRET_KEY)
+        print(sign)
+        params = dict(api_key=settings.API_KEY, sign=sign, market=market, side=2, amount=amount, price=price, isfee=isfee)
         response = requests.post(ORDER_PUT_LIMIT, data=params, headers=HEADERS)
         return response.json()
     
@@ -480,11 +494,12 @@ class Hotbit():
             market = self.market
         sign = self.get_sign(api_key=settings.API_KEY, market=market, start_time=start_time, end_time=end_time, offset=offset, limit=limit, side=side, secret_key=settings.SECRET_KEY)
         params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, sign, settings.MARKET, start_time, end_time, offset, limit, side)
-        reponse = requests.post(ORDER_FINISHED_DETAIL, data=params)
+        response = requests.post(ORDER_FINISHED_DETAIL, data=params).json()
+        return response
     
 
     def get_crypto_price(self, market=None):    
-        CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT", data=PARAMS).json().get('result'))
+        CRYPTO_CURRENT_VALUE = float(requests.get("https://api.hotbit.io/api/v1/market.last?market=CTS/USDT").json().get('result'))
         return CRYPTO_CURRENT_VALUE
     
     def get_sign(self, *args, **kwargs):
@@ -503,6 +518,7 @@ class Hotbit():
         #########################################
 
         SIGN = str(SIGN.hexdigest()).upper()
+        # print("\nsign unhashed: "+sign_unhashed+"\nsign= ",SIGN)
         return SIGN
     
  
