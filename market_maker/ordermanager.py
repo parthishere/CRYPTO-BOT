@@ -174,9 +174,9 @@ class OrderManager:
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
         for i in range(0, settings.MAX_ORDER_PAIRS):
             
-            orders.append({'price': prices[i], 'orderQty': orderQty, 'side': index})
+            orders.append({'price': str(prices[i]), 'amount': str(orderQty), 'side': index})
 
-        print(orders)
+        # print(orders)
         return orders
 
     def converge_orders(self, buy_orders, sell_orders):
@@ -221,13 +221,13 @@ class OrderManager:
                     else:
                         logging.info("previously sell orders were placed now buy orders are being placed")
                         
-                if desired_order['amount'] != order['left'] or (abs((desired_order['price'] / order['price']) - 1) > settings.RELIST_INTERVAL):
-                    to_amend.append({'id': order['id'], 'amount': order['left'] + desired_order['amount'],
-                                        'price': desired_order['price'], 'side': order['side']})
+                if desired_order['amount'] != order['left'] or (abs((float(desired_order['price']) / float(order['price'])) - 1) > settings.RELIST_INTERVAL):
+                    to_amend.append({'id': order['id'], 'amount': str(order['left'] + desired_order['amount']),
+                                        'price': str(desired_order['price']), 'side': order['side']})
                     
                     to_cancel.append(order)
         else:
-            to_create.append(buy_orders if buy_orders else sell_orders)
+            to_create = buy_orders if buy_orders else sell_orders
         
         if to_create is []:
             while buys_matched < len(buy_orders):
@@ -242,30 +242,31 @@ class OrderManager:
                 for o in to_amend:
                     to_create.append(o)
 
+        print(to_create)
         if len(to_create) > 0:
             logging.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
-                logging.info("%d %d @ %d" % (order['side'], order['amount'], order['price']))
-                if settings.DEBUG:
-                    var = str(input("input 'Yes' for further process :"))
-                    if var == "Yes":
-                        self.exchange.create_bulk_orders(to_create)
-                    else:
-                        logging.info("cancelling order %4s %d @ %.*f" % (order['side'], order['orderQty'], order['price']))
-                else:
+                logging.info("side = %d , amount =%s @ %s$" % (order['side'], order['amount'], order['price']))
+            if settings.DEBUG:
+                var = str(input("input 'Yes' for further process :"))
+                if var == "Yes":
                     self.exchange.create_bulk_orders(to_create)
+                else:
+                    logging.info("cancelling order side = %s, amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
+            else:
+                self.exchange.create_bulk_orders(to_create)
 
         # Could happen if we exceed a delta limit
         if len(to_cancel) > 0:
             logging.info("Canceling %d orders:" % (len(to_cancel)))
             for order in reversed(to_cancel):
-                logging.info("%d %d @ %d" % (order['side'], order['amount'], order['price']))
+                logging.info("side = %d amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
             if settings.DEBUG:
                 var = str(input("input 'Yes' for further process :"))
                 if var == "Yes":
                         self.exchange.cancel_bulk_orders(to_cancel)
                 else:
-                    logging.info("cancelling cancel order %4s %d @ %.*f" % (order['side'], order['orderQty'], order['price']))
+                    logging.info("cancelling cancel order side = %s amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
             else:
                 self.exchange.cancel_bulk_orders(to_cancel)
 
@@ -339,8 +340,8 @@ class OrderManager:
         logging.info("Shutting down. All open orders will be cancelled.")
         try:
             self.exchange.cancel_all_orders()
-            self.exchange.bitmex.exit()
-        except errors.AuthenticationError as e:
+            self.exchange.hotbit.exit()
+        except AuthenticationError as e:
             logging.info("Was not authenticated; could not cancel orders.")
         except Exception as e:
             logging.info("Unable to cancel orders: %s" % e)
@@ -384,3 +385,13 @@ def run():
         ordermanager.run_loop()
     except (KeyboardInterrupt, SystemExit):
         sys.exit()
+        
+        
+class AuthenticationError(Exception):
+        pass
+
+class MarketClosedError(Exception):
+    pass
+
+class MarketEmptyError(Exception):
+    pass
