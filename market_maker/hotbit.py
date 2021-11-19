@@ -6,13 +6,14 @@ from market_maker import settings
 
 SERVER_TIME = "https://api.hotbit.io/api/v1/server.time"
 BALANCE_QUERY = "https://api.hotbit.io/api/v1/balance.query"
-BALANCE_HISTORY = "https://api.hotbit.io/api/v1/balance.history"
+BALANCE_HISTORY = "https://api.hotbit.io/v2/p2/balance.history"
 
 ORDER_PUT_LIMIT = "https://api.hotbit.io/v2/p2/order.put_limit" # Limit Order Transaction
 ORDER_CANCEL = "https://api.hotbit.io/api/v1/order.cancel" # Cancel Transaction
 ORDER_BULK_CANCEL = "https://api.hotbit.io/api/v1/order.batch_cancel" # Cancel transactions in large quantities
 ORDER_DEALS = "https://api.hotbit.io/api/v1/order.deals" # Obtain the details of settled orders
 ORDER_FINISHED_DETAIL = "https://api.hotbit.io/api/v1/order.finished_detail" # Check finished orders according to order number
+ORDER_FINISHED_LIST = "https://api.hotbit.io/api/v1/order.finished"
 ORDER_BOOK = "https://api.hotbit.io/api/v1/order.book" # Have to add parameters see doc! # obtain list of transaction
 ORDER_PENDING = "https://api.hotbit.io/api/v1/order.pending" # CHECK UNEXECUTED ORDERS
 
@@ -164,7 +165,7 @@ class Hotbit():
         pass
     
     @authentication_required
-    def get_balance_history(self, business=None, start_time=0, end_time=get_epoch_now(), offset=0, limit=100, asset=settings.ASSET):
+    def get_balance_history(self, business=None, start_time=0, end_time=int(round(get_epoch_now(), 0)), offset=0, limit=1000, asset=settings.ASSET):
         '''
         
         '''
@@ -175,7 +176,7 @@ class Hotbit():
                 business="deposit"
             
                 
-        sign = self.get_sign(api_key=settings.API_KEY, assets=asset, business=business, start_time=start_time, end_time=end_time, offset=offset, limit=limit, secret_key=settings.SECRET_KEY)
+        sign = self.get_sign_two(api_key=settings.API_KEY, assets=asset, business=business, start_time=start_time, end_time=end_time, offset=offset, limit=limit)
         parameter_for_history = "api_key={}&sign={}&asset={}&business={}&start_time={}&end_time={}&offset={}&limit={}".format(settings.API_KEY, sign, asset, business, start_time, end_time, offset, limit)
         response = requests.post(BALANCE_HISTORY, data=parameter_for_history)
         return response.json()
@@ -394,7 +395,7 @@ class Hotbit():
         return response
 
     @authentication_required
-    def order_detail(self, market=settings.MARKET, order_id=1, offset=settings.OFFSET):
+    def order_detail(self, limit=1000, order_id=1):
         """
         Response:
         {
@@ -418,7 +419,7 @@ class Hotbit():
                         "time": 1521107410.357024,#(秒)
                         "user": 15643,
                         "id": 1385151,
-                        "role": 1,
+                        "role": 1,7
                         "price": "0.02",
                         "amount": "0.081",
                         "deal": "0.00162",
@@ -430,9 +431,9 @@ class Hotbit():
             "id": 1521169460
         }
         """
-        sign = self.get_sign(api_key=settings.API_KEY, market=market,order_id=order_id, secret_key=settings.SECRET_KEY)
-        params = "api_key={}&sign={}&market={}&order_id={}".format(settings.API_KEY, sign, settings.MARKET, order_id)
-        response = requests.post(ORDER_DEALS, data=params)
+        sign = self.get_sign_two(api_key=settings.API_KEY,order_id=order_id)
+        params = "api_key={}&sign={}&order_id={}".format(settings.API_KEY, sign, order_id)
+        response = requests.post(ORDER_FINISHED_DETAIL, data=params)
         return response.json()
         
     def order_depth(self, market=settings.MARKET, limit=100, interval='1e-8'):
@@ -486,7 +487,7 @@ class Hotbit():
         return response.json()
     
     @authentication_required   
-    def order_finished(self, market=settings.MARKET, start_time=0, end_time=get_epoch_now(), offset=0, limit=100, side=1):
+    def order_finished(self, market=settings.MARKET, start_time=0, end_time=int(round(get_epoch_now(), 0)), offset=0, limit=1000, side=1):
         """
         Response:
         {
@@ -516,10 +517,11 @@ class Hotbit():
         """
         if not market:
             market = self.market
-        sign = self.get_sign(api_key=settings.API_KEY, market=market, start_time=start_time, end_time=end_time, offset=offset, limit=limit, side=side, secret_key=settings.SECRET_KEY)
+        sign = self.get_sign_two(api_key=settings.API_KEY, market=market, start_time=start_time, end_time=end_time, offset=offset, limit=limit, side=side)
         params = "api_key={}&sign={}&market={}&start_time={}&end_time={}&offset={}&limit={}&side={}".format(settings.API_KEY, sign, settings.MARKET, start_time, end_time, offset, limit, side)
-        response = requests.post(ORDER_FINISHED_DETAIL, data=params).json()
+        response = requests.post(ORDER_FINISHED_LIST, data=params).json()
         return response
+    
     
 
     def get_crypto_price(self, market=None):    
@@ -540,7 +542,25 @@ class Hotbit():
         SIGN.update(RAW.encode('utf-8'))
         SIGN.digest()
         #########################################
-        print(sign_unhashed)
+        
+        SIGN = str(SIGN.hexdigest()).upper()
+        return SIGN
+    
+    def get_sign_two(self, *args, **kwargs):
+        
+        arguments_list = sorted(kwargs)
+        sign_unhashed=""
+        for arg in arguments_list:
+            sign_unhashed += f"{arg}={kwargs[arg]}&"  
+        sign_unhashed += "secret_key="+ settings.SECRET_KEY
+        
+        hashlib.md5().digest()
+        SIGN = hashlib.md5()
+        RAW = sign_unhashed
+        SIGN.update(RAW.encode('utf-8'))
+        SIGN.digest()
+        #########################################
+        
         SIGN = str(SIGN.hexdigest()).upper()
         return SIGN
     

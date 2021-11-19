@@ -50,12 +50,16 @@ class OrderManager:
         margin = self.exchange.get_delta()
         position = self.exchange.get_position()
         self.running_qty = float(self.exchange.get_delta())
-
+        logging.info("Delta : %s" % str(self.exchange.get_position()))
         # logging.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logging.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
        
         logging.info("Contracts Traded This Run: %d" % (self.running_qty - self.starting_qty))
+        # hard coded
+        logging.info("Pending orders : %s" % str(self.exchange.get_pending_orders().get('result').get("CTSUSDT").get('records')))
+        
+        
 
     def get_price_offset(self, index, order_pairs):
         """Given an index (1, -1, 2, -2, etc.) return the price for that side of the book.
@@ -254,17 +258,18 @@ class OrderManager:
                 else:
                     logging.info("cancelling order side = %s, amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
             else:
-                self.exchange.create_bulk_orders(to_create)
+                response = self.exchange.create_bulk_orders(to_create)
+                
 
         # Could happen if we exceed a delta limit
         if len(to_cancel) > 0:
             logging.info("Canceling %d orders:" % (len(to_cancel)))
             for order in reversed(to_cancel):
-                logging.info("side = %d amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
+                logging.info("id = %d side = %d amount = %s @ %s$" % (order['id'], order['side'], order['amount'], order['price']))
             if settings.DEBUG:
                 var = str(input("input 'Yes' for further process :"))
                 if var == "Yes":
-                        self.exchange.cancel_bulk_orders(to_cancel)
+                        response = self.exchange.cancel_bulk_orders(to_cancel)
                 else:
                     logging.info("cancelling cancel order side = %s amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
             else:
@@ -324,6 +329,10 @@ class OrderManager:
             logging.warning("Short delta limit exceeded")
             logging.warning("Current Position: %.f, Minimum Position: %.f" %
                         (self.exchange.get_delta(), settings.MIN_POSITION))
+        
+        if self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records') is not None:
+            if len(self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records')) > settings.MAX_PENDING_ORDERS:
+                logging.warning("Pending Order limit exceeded")
 
     ###########
     # Running #

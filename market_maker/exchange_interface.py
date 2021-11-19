@@ -1,3 +1,4 @@
+from genericpath import exists
 import sys, os
 from market_maker import settings
 from market_maker import hotbit
@@ -73,23 +74,32 @@ class ExchangeInterface():
     
     def cancel_order(self, order):
         pending_orders = self.get_pending_orders().get('result').get(self.symbol).get('records')
-        cancel_order = []
-        for o in pending_orders:
-            if o.get('id') == 'web':
-                cancel_order.append()
-        logging.warning("Canceling:%d %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
-        return self.hotbit.order_cancel(order['id'])
+        to_cancel = None
+        if pending_orders != None: 
+            for o in pending_orders:
+                if o['id'] == order['id']:
+                    to_cancel = order
+            if len(to_cancel):
+                logging.warning("Canceling:%d %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
+                return self.hotbit.order_cancel(order['id'])
+        else:
+            logging.warning("order does not exists in pending orders with id = %d" % order['id'])
     
     def cancel_all_orders(self):
         logging.warning("Resetting current position. Canceling all existing orders.")
-        orders = self.hotbit.pending_orders()
-        
-        try:
-            if len(orders):
-                return self.hotbit.bulk_cancel([order['id'] for order in orders])
-        except Exception as e:
-            print(e)
-            return e
+        orders = self.get_pending_orders().get('result').get("CTSUSDT").get('records')
+        to_cancel = []
+        if orders is not None:
+            try:
+                if len(orders):
+                    for o in orders:
+                        to_cancel.append(o[id])
+                    return self.hotbit.bulk_cancel(to_cancel)
+            except Exception as e:
+                print(e)
+                return e
+        else:
+            logging.warning("No order to cancel")
     
     def cancel_bulk_orders(self, orders):
         for order in orders:
