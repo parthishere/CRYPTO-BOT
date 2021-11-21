@@ -62,11 +62,15 @@ class ExchangeInterface():
         return self.hotbit.market_summery(symbol)
         
     def create_bulk_orders(self, orders):
+        o_ids = []
         for order in orders:
             if order['side'] == 1:  # 1-Seller，2-buyer
-                return self.hotbit.sell(amount=order['amount'], price=order['price'])
+                o = self.hotbit.sell(amount=order['amount'], price=order['price'])
+                o_ids.append(o['result'])
             elif order['side'] == 2:  # 1-Seller，2-buyer
-                return self.hotbit.buy(amount=order['amount'], price=order['price'])
+                o = self.hotbit.buy(amount=order['amount'], price=order['price'])
+                o_ids.append(o['result'])
+            return o_ids
         
     
     def get_pending_orders(self):
@@ -87,19 +91,19 @@ class ExchangeInterface():
     
     def cancel_all_orders(self):
         logging.warning("Resetting current position. Canceling all existing orders.")
-        orders = self.get_pending_orders().get('result').get("CTSUSDT").get('records')
+        try:
+            orders = self.get_pending_orders().get('result').get("CTSUSDT").get('records')
+        except:
+            print("CTSUSDT not found")
         to_cancel = []
         if orders is not None:
             try:
-                if len(orders):
-                    for o in orders:
-                        to_cancel.append(o[id])
-                    return self.hotbit.bulk_cancel(to_cancel)
+                return self.hotbit.bulk_cancel([order[id] for order in orders])
             except Exception as e:
                 print(e)
                 return e
         else:
-            logging.warning("No order to cancel")
+            logging.warning("N o order to cancel")
     
     def cancel_bulk_orders(self, orders):
         for order in orders:
