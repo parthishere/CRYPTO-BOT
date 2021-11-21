@@ -10,7 +10,7 @@ BALANCE_HISTORY = "https://api.hotbit.io/v2/p2/balance.history"
 
 ORDER_PUT_LIMIT = "https://api.hotbit.io/v2/p2/order.put_limit" # Limit Order Transaction
 ORDER_CANCEL = "https://api.hotbit.io/api/v1/order.cancel" # Cancel Transaction
-ORDER_BULK_CANCEL = "https://api.hotbit.io/api/v1/order.batch_cancel" # Cancel transactions in large quantities
+ORDER_BULK_CANCEL = "https://api.hotbit.io/v2/p2/order.batch_cancel" # Cancel transactions in large quantities
 ORDER_DEALS = "https://api.hotbit.io/api/v1/order.deals" # Obtain the details of settled orders
 ORDER_FINISHED_DETAIL = "https://api.hotbit.io/api/v1/order.finished_detail" # Check finished orders according to order number
 ORDER_FINISHED_LIST = "https://api.hotbit.io/api/v1/order.finished"
@@ -28,6 +28,10 @@ MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary" # market summary
 ALLTICKER = "https://api.hotbit.io/api/v1/allticker" # obtain the latest trading informnation of all transaction pairs in the market
 
 HEADERS = {'Content-type': 'application/x-www-form-urlencoded'}
+
+
+import logging
+logging.basicConfig(level=settings.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 
 
 class Hotbit():
@@ -389,7 +393,7 @@ class Hotbit():
         }
 
         """
-        sign = self.get_sign(api_key=settings.API_KEY, market=market, orders_id=orders_id, secret_key=settings.SECRET_KEY)
+        sign = self.get_sign_two(api_key=settings.API_KEY, market=market, orders_id=orders_id)
         params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, sign, settings.MARKET, orders_id)
         response = requests.post(ORDER_BULK_CANCEL, data=params).json()
         return response

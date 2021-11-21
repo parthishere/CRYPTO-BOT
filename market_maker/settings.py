@@ -4,11 +4,14 @@ import dotenv
 from pathlib import Path
 import logging
 
-
+# For Debugging purpose
 DEBUG = True
 
+# logging.INFO, logging.WARNING, logging.DEBUG
 LOG_LEVEL = logging.INFO
 
+# If set to yes then bot will buy also when the amount of bid and sell will be same 
+# so the spead will increase between bidders and sellers
 BUY_AGGRESIVELY = False
 
 
@@ -18,17 +21,19 @@ dotenv_file = os.path.join(BASE_DIR, ".env")
 if os.path.isfile(dotenv_file):
     dotenv.load_dotenv(dotenv_file)
     
-
+# set secret_key and api_key in .env file
 SECRET_KEY = os.environ['secret_key']
 API_KEY = os.environ['api_key']
 ASSETS = os.environ['assets'] or ["CTS/USDT"]
 
-
+# How much lower crypto price may go
 INPUT_LOWER_RANGE = 1.15131
+# How much higher price may go
 INPUT_UPPER_RANGE = 1.151
 
-
+# "BTC", "ETH" etc.
 ASSET = "CTS"
+# "BTC/USDT", "ETH/USDT" etc 
 MARKET = "CTS/USDT"
 
 
@@ -38,7 +43,7 @@ MAINTAIN_SPREAD = True
 MIN_SPREAD = 0.01
 # Min Spread
 MAX_SPREAD = 0.5
-# In Percent means at what threshold should we start buying or selling
+# In Percent means at what threshold of difference between buyers and sellers should we start buying or selling
 FLUCTUATION = 5  
 
 # last open value of crypto before LAST_VALUE_PERIOD seconds
@@ -46,10 +51,10 @@ LAST_VALUE_PERIOD = 5
 
 
 # How much order size you want to put in orderbook ?
+# The orders will be in placed in pairs of MAX_ORDER_PAIRS
 MAX_ORDER_PAIRS = 6
-MIN_ORDER_SIZE = 0
-MAX_ORDER_SIZE = -1 # -1 = no Limit
 
+# Max limit of pending orders
 MAX_PENDING_ORDERS = 100
 
 CHECK_POSITION_LIMITS = True
@@ -59,16 +64,23 @@ MIN_POSITION = 0
 # How much price after decimal point.
 PRICE_PRECISION = 8
 
+# How much price Ratio will be bearable or amendable for relisting the existing order
 RELIST_INTERVAL = 2
 
 
-TIMEZONE = 'IST'
 DEFAULT_BUSINESS= "deposit"
+
+# Related to Hotbit API, If you dont know what it is then don't change values of variable
+# Offset of Zero gives you all the data till last order or object
 OFFSET = 0
 LIMIT = 100
 INTERVAL = 1
 ISFEE = 0
 
+# How much time the bot will sleep after one loop of execution
 LOOP_INTERVAL = 1
 
+#Don't change unless and until you know which file is which
 WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py')]
+
+KAI_NAI = True

@@ -3,12 +3,14 @@ from market_maker import settings
 from .exchange_interface import ExchangeInterface
     
 from os.path import getmtime
-from logger import logging
+import logging
 from time import sleep
 
 
 import os
 watched_files_mtimes = [(f, getmtime(f)) for f in settings.WATCHED_FILES]
+
+logging.basicConfig(level=settings.LOG_LEVEL, format='%(asctime)s - %(levelname)s - %(module)s - %(message)s')
 
 
 
@@ -35,7 +37,7 @@ class OrderManager:
         logging.info("highest bid = %f", self.get_highest_buy)
         logging.info("lowest sell = %f", self.get_lowest_sell)
         
-        self.reset()
+        # self.reset()
 
     def reset(self):
         self.exchange.cancel_all_orders()
@@ -71,17 +73,20 @@ class OrderManager:
             SPREAD = settings.MAX_SPREAD
         else:
             SPREAD = settings.MIN_SPREAD
-        price = float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open'])
+        price = float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
         if settings.MAINTAIN_SPREAD:
             if self.get_highest_buy > self.get_lowest_sell:
                 
                 for i in range(0, order_pairs):
-                    prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
+                    if settings.KAI_NAI:
+                        prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
-                    if prices[i] > self.get_highest_buy:
-                        prices[i] = self.get_highest_buy if settings.MAINTAIN_SPREAD else self.get_highest_buy + self.get_highest_buy*settings.SPREAD / 100
-                    if price[i] < self.get_lowest_sell:
-                        prices[i] = self.get_lowest_sell
+                        if prices[i] > self.get_highest_buy:
+                            prices[i] = self.get_highest_buy if settings.MAINTAIN_SPREAD else self.get_highest_buy + self.get_highest_buy*settings.SPREAD / 100
+                        if price[i] < self.get_lowest_sell:
+                            prices[i] = self.get_lowest_sell
+                    else:
+                        price.append(price)
                     
                 prices.sort()
             elif self.get_highest_buy <= self.get_lowest_sell:
@@ -89,9 +94,12 @@ class OrderManager:
                     # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
                     
                     # or
-                    prices.append(round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION))
-                    if prices[i] < self.get_lowest_sell:
-                        prices[i] = round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
+                    if settings.KAI_NAI:
+                        prices.append(round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION))
+                        if prices[i] < self.get_lowest_sell:
+                            prices[i] = round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
+                    else:
+                        prices.append(price)
 
                 prices.sort()
             
@@ -139,7 +147,7 @@ class OrderManager:
                 sell_amount += float(result['amount'])
         
         logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
-        if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION:
+        if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION or recent_value <= settings.INPUT_LOWER_RANGE or recent_value >= settings.INPUT_UPPER_RANGE :
             if bid_amount > sell_amount or (previous_value < recent_value):
                 print("buyer is greater than seller sell some volume")
                 change = bid_amount - sell_amount
@@ -148,7 +156,7 @@ class OrderManager:
             elif bid_amount < sell_amount or (previous_value > recent_value):
                 print("seller are grater than buyer, buy some volume..")
                 change = sell_amount - bid_amount
-                index = 2 # -1 for buying
+                index = 2 # 2 for buying
                 sell_orders = self.prepare_order(index, amount=change)
             
             else:
@@ -156,7 +164,7 @@ class OrderManager:
                 #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
                 #         index = -1 # -1 for buying
                 #         print("buyer are equal to seller, buying aggresively")
-                # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+                # buy_orders.append(self.prepare_order(index, amount=settings.MAX_SPREAD))
                 # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
                 #         index = 1 # 1 for selling
                 #         print("buyer are equal to seller, buying aggresively")
@@ -165,7 +173,8 @@ class OrderManager:
                 print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
                 
 
-        return self.converge_orders(buy_orders, sell_orders)
+        # return self.converge_orders(buy_orders, sell_orders)
+        return self.converge_orders([{'price':'0.9', 'amount':'1', 'side':1}], buy_orders)
 
     def prepare_order(self, index, amount):
         """Create an order object."""
@@ -380,7 +389,7 @@ class OrderManager:
         os.execv(sys.executable, [sys.executable] + sys.argv)
         
     def check_connection(self):
-        return True if len(self.exchange.get_position()) is not None else False
+        return True if len(self.exchange.get_delta()) is not None else False
 
 
 
