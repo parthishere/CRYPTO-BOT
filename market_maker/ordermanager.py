@@ -180,10 +180,7 @@ class OrderManager:
         """Create an order object."""
         orderQty = (amount / settings.MAX_ORDER_PAIRS) 
         orders = []
-        # if settings.RANDOM_ORDER_SIZE is True:
-        #     quantity = random.randint(settings.MIN_ORDER_SIZE, settings.MAX_ORDER_SIZE)
-        # else:
-        #     quantity = settings.ORDER_START_SIZE + ((abs(index) - 1) * settings.ORDER_STEP_SIZE)
+        
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
         for i in range(0, settings.MAX_ORDER_PAIRS):
             
@@ -214,21 +211,22 @@ class OrderManager:
 
         # Check all existing orders and match them up with what we want to place.
         # If there's an open one, we might be able to amend it to fit what we want.
-        if len(existing_user_orders):
+        if existing_user_orders:
+            desired_order = None
             for order in existing_user_orders:
                 
-                desired_order = None
-                if order['side'] == 1 or order['side'] == '1':   # 1-Seller，2-buyer
+                
+                if order['side'] == 1:   # 1-Seller，2-buyer
                     # for seller
-                    if len(sell_orders):
+                    if sell_orders:
                         desired_order = sell_orders[sells_matched]
                         sells_matched +=1
                     else:
                         logging.info("previously sell orders were placed now buy orders are being placed")
                         
-                if order['side'] == 2 or order['side'] == '2':   # 1-Seller，2-buyer
+                else:   # 1-Seller，2-buyer
                     # for buyer
-                    if len(buy_orders):
+                    if buy_orders:
                         desired_order = buy_orders[sells_matched]
                         buys_matched +=1
                     else:
@@ -242,7 +240,7 @@ class OrderManager:
         else:
             to_create = buy_orders if buy_orders else sell_orders
         
-        if to_create is []:
+        if to_create:
             while buys_matched < len(buy_orders):
                 to_create.append(buy_orders[buys_matched])
                 buys_matched += 1
@@ -251,12 +249,11 @@ class OrderManager:
                 to_create.append(sell_orders[sells_matched])
                 sells_matched += 1
                 
-            if len(buy_orders) or len(sell_orders):
-                for o in to_amend:
-                    to_create.append(o)
+            if buy_orders or sell_orders:
+                to_create.append(o for o in to_amend)
 
         print(to_create)
-        if len(to_create) > 0:
+        if to_create:
             logging.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
                 logging.info("side = %d , amount =%s @ %s$" % (order['side'], order['amount'], order['price']))
@@ -267,7 +264,7 @@ class OrderManager:
                 else:
                     logging.info("cancelling order side = %s, amount = %s @ %s$" % (order['side'], order['amount'], order['price']))
             else:
-                response = self.exchange.create_bulk_orders(to_create)
+                self.exchange.create_bulk_orders(to_create)
                 
 
         # Could happen if we exceed a delta limit

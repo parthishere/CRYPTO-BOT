@@ -352,7 +352,7 @@ class Hotbit():
         return response
     
     @authentication_required
-    def bulk_cancel(self, orders_id=[0], market=settings.MARKET):
+    def bulk_cancel(self, orders_id=None, market=settings.MARKET):
         """
         Response:
         {
@@ -393,13 +393,15 @@ class Hotbit():
         }
 
         """
+        if not orders_id:
+            orders_id = []
         sign = self.get_sign_two(api_key=settings.API_KEY, market=market, orders_id=orders_id)
         params = "api_key={}&sign={}&market={}&orders_id={}".format(settings.API_KEY, sign, settings.MARKET, orders_id)
         response = requests.post(ORDER_BULK_CANCEL, data=params).json()
         return response
 
     @authentication_required
-    def order_detail(self, limit=1000, order_id=1):
+    def order_detail(self, limit=1000, order_id=None):
         """
         Response:
         {
@@ -435,6 +437,8 @@ class Hotbit():
             "id": 1521169460
         }
         """
+        if not order_id:
+            order_id = 1
         sign = self.get_sign_two(api_key=settings.API_KEY,order_id=order_id)
         params = "api_key={}&sign={}&order_id={}".format(settings.API_KEY, sign, order_id)
         response = requests.post(ORDER_FINISHED_DETAIL, data=params)

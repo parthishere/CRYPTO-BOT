@@ -8,17 +8,17 @@ ei = exchange_interface.ExchangeInterface()
 
 
 hb = hotbit.Hotbit()
-price = float(ei.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
+# price = float(ei.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
 # print(str(hb.sell(amount=0.60, price=price))+"\n")
 # print(str(hb.buy(amount=0.69, price=price))+"\n")  
 # print(str(hb.buy(amount=0.69, price=price))+"\n")  
 # print(str(hb.buy(amount=0.69, price=price))+"\n")  
-print(
-    ei.create_bulk_orders([
-        {'price':price, 'amount':'0.1', 'side':2},
-        {'price':price, 'amount':'0.11', 'side':2}
-        ])
-    )
+# print(
+#     ei.create_bulk_orders([
+#         {'price':price, 'amount':'0.1', 'side':2},
+#         {'price':price, 'amount':'0.11', 'side':2}
+#         ])
+#     )
 
 
 # print(hb.order_cancel(order_id=67259747046))
@@ -31,7 +31,12 @@ print(
     
     
 # print(hb.get_balance_history())
-print(str(hb.pending_orders())+"\n\n") 
+# print(str(hb.pending_orders())+"\n\n") 
 # print(ei.cancel_all_orders())
-print(str(hb.order_finished(side=1))+"\n\n")
+# print(str(hb.order_finished(side=1))+"\n\n")
 # print(hb.order_detail(order_id=66820789291))
+
+# order = {'id':67259869643}
+# orders = ei.get_pending_orders().get('result').get("CTSUSDT").get('records')
+# to_cancel = [o for o in orders if o['id'] == order['id']]
+# print(to_cancel)

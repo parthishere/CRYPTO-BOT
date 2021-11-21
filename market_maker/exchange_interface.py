@@ -65,9 +65,11 @@ class ExchangeInterface():
         o_ids = []
         for order in orders:
             if order['side'] == 1:  # 1-Seller，2-buyer
+                # for seller
                 o = self.hotbit.sell(amount=order['amount'], price=order['price'])
                 o_ids.append(o['result'])
-            elif order['side'] == 2:  # 1-Seller，2-buyer
+            else:  # 1-Seller，2-buyer
+                # for buyer
                 o = self.hotbit.buy(amount=order['amount'], price=order['price'])
                 o_ids.append(o['result'])
             return o_ids
@@ -80,10 +82,8 @@ class ExchangeInterface():
         pending_orders = self.get_pending_orders().get('result').get(self.symbol).get('records')
         to_cancel = None
         if pending_orders != None: 
-            for o in pending_orders:
-                if o['id'] == order['id']:
-                    to_cancel = order
-            if len(to_cancel):
+            to_cancel = [o for o in pending_orders if o['id'] == order['id']]
+            if to_cancel:
                 logging.warning("Canceling:%d %s %d @ %.*f" % (order['id'], order['side'], order['amount'], order['price']))
                 return self.hotbit.order_cancel(order['id'])
         else:
@@ -93,17 +93,17 @@ class ExchangeInterface():
         logging.warning("Resetting current position. Canceling all existing orders.")
         try:
             orders = self.get_pending_orders().get('result').get("CTSUSDT").get('records')
-        except:
+        except ValueError:
             print("CTSUSDT not found")
         to_cancel = []
-        if orders is not None:
+        if orders:
             try:
                 return self.hotbit.bulk_cancel([order[id] for order in orders])
             except Exception as e:
                 print(e)
                 return e
         else:
-            logging.warning("N o order to cancel")
+            logging.warning("No order to cancel")
     
     def cancel_bulk_orders(self, orders):
         for order in orders:
