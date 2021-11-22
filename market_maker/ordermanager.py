@@ -243,20 +243,16 @@ class OrderManager:
                                         'price': str(desired_order['price']), 'side': order['side']})
                     
                     to_cancel.append(order)
-        else:
-            to_create = buy_orders if buy_orders else sell_orders
+                    logging.info("Amending the value of previous order")
         
-        if to_create:
-            while buys_matched < len(buy_orders):
-                to_create.append(buy_orders[buys_matched])
-                buys_matched += 1
+        
+        while buys_matched < len(buy_orders):
+            to_create.append(buy_orders[buys_matched])
+            buys_matched += 1
 
-            while sells_matched < len(sell_orders):
-                to_create.append(sell_orders[sells_matched])
-                sells_matched += 1
-                
-            if buy_orders or sell_orders:
-                to_create.append(o for o in to_amend)
+        while sells_matched < len(sell_orders):
+            to_create.append(sell_orders[sells_matched])
+            sells_matched += 1
 
         print(to_create)
         if to_create:
