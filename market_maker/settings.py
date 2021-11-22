@@ -81,6 +81,6 @@ ISFEE = 0
 LOOP_INTERVAL = 1
 
 #Don't change unless and until you know which file is which
-WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py')]
+WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py'), 'main.py']
 
 KAI_NAI = True

@@ -147,34 +147,40 @@ class OrderManager:
                 sell_amount += float(result['amount'])
         
         logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
-        if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION or recent_value <= settings.INPUT_LOWER_RANGE or recent_value >= settings.INPUT_UPPER_RANGE :
-            if bid_amount > sell_amount or (previous_value < recent_value):
-                print("buyer is greater than seller sell some volume")
-                change = bid_amount - sell_amount
-                index = 1 # 1 for selling
-                buy_orders = self.prepare_order(index, amount=change)
-            elif bid_amount < sell_amount or (previous_value > recent_value):
-                print("seller are grater than buyer, buy some volume..")
-                change = sell_amount - bid_amount
-                index = 2 # 2 for buying
-                sell_orders = self.prepare_order(index, amount=change)
-            
+        if recent_value <= settings.INPUT_LOWER_RANGE or recent_value >= settings.INPUT_UPPER_RANGE :
+            if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION :
+                if bid_amount > sell_amount or (previous_value < recent_value):
+                    print("buyer is greater than seller sell some volume")
+                    change = bid_amount - sell_amount
+                    index = 1 # 1 for selling
+                    buy_orders = self.prepare_order(index, amount=change)
+                elif bid_amount < sell_amount or (previous_value > recent_value):
+                    print("seller are grater than buyer, buy some volume..")
+                    change = sell_amount - bid_amount
+                    index = 2 # 2 for buying
+                    sell_orders = self.prepare_order(index, amount=change)
+                else:
+                    # if settings.BUY_AGGRESIVELY:
+                    #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+                    #         index = -1 # -1 for buying
+                    #         print("buyer are equal to seller, buying aggresively")
+                    # buy_orders.append(self.prepare_order(index, amount=settings.MAX_SPREAD))
+                    # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
+                    #         index = 1 # 1 for selling
+                    #         print("buyer are equal to seller, buying aggresively")
+                    # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
+                    # else:
+                    print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
+                    
+                # return self.converge_orders(buy_orders, sell_orders)
+                return self.converge_orders([{'price':'0.9', 'amount':'1', 'side':1}], buy_orders)
             else:
-                # if settings.BUY_AGGRESIVELY:
-                #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-                #         index = -1 # -1 for buying
-                #         print("buyer are equal to seller, buying aggresively")
-                # buy_orders.append(self.prepare_order(index, amount=settings.MAX_SPREAD))
-                # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-                #         index = 1 # 1 for selling
-                #         print("buyer are equal to seller, buying aggresively")
-                # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
-                # else:
-                print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
+                logging.DEBUG("Value of crypto is out of bound and seller volume and buyer volume is not in thhe range of bound, therefor bot can't quote")
+        
+        
                 
 
-        # return self.converge_orders(buy_orders, sell_orders)
-        return self.converge_orders([{'price':'0.9', 'amount':'1', 'side':1}], buy_orders)
+        
 
     def prepare_order(self, index, amount):
         """Create an order object."""
