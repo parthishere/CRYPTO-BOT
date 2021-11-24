@@ -6,13 +6,8 @@ ei = exchange_interface.ExchangeInterface()
 # print(ei.get_delta())
 # ordermanager.run()
 
-
 hb = hotbit.Hotbit()
-# price = float(ei.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
-# print(str(hb.sell(amount=0.60, price=price))+"\n")
-# print(str(hb.buy(amount=0.69, price=price))+"\n")  
-# print(str(hb.buy(amount=0.69, price=price))+"\n")  
-# print(str(hb.buy(amount=0.69, price=price))+"\n")  
+# price = float(ei.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last']) 
 # print(
 #     ei.create_bulk_orders([
 #         {'price':price, 'amount':'0.1', 'side':2},
@@ -28,12 +23,12 @@ hb = hotbit.Hotbit()
 # orders = ei.get_pending_orders().get('result').get("CTSUSDT").get('records')
 # for o in orders:
 #     print(o['id'],"\n")
-    
+
     
 # print(hb.get_balance_history())
 # print(str(hb.pending_orders())+"\n\n") 
 # print(ei.cancel_all_orders())
-# print(str(hb.order_finished(side=1))+"\n\n")
+# print(str(hb.order_finished(side=2))+"\n\n")
 # print(hb.order_detail(order_id=66820789291))
 
 # order = {'id':67259869643}

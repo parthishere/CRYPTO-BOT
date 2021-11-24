@@ -60,6 +60,7 @@ class OrderManager:
         logging.info("Contracts Traded This Run: %d" % (self.running_qty - self.starting_qty))
         # hard coded
         logging.info("Pending orders : %s" % str(self.exchange.get_pending_orders().get('result').get("CTSUSDT").get('records')))
+        logging.info("Trading Type : %s" % settings.TYPE)
         
         
 
@@ -73,38 +74,17 @@ class OrderManager:
             SPREAD = settings.MAX_SPREAD
         else:
             SPREAD = settings.MIN_SPREAD
-        price = float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
-        if settings.MAINTAIN_SPREAD:
-            if self.get_highest_buy > self.get_lowest_sell:
-                
-                for i in range(0, order_pairs):
-                    if settings.KAI_NAI:
-                        prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
-                    
-                        if prices[i] > self.get_highest_buy:
-                            prices[i] = self.get_highest_buy if settings.MAINTAIN_SPREAD else self.get_highest_buy + self.get_highest_buy*settings.SPREAD / 100
-                        if price[i] < self.get_lowest_sell:
-                            prices[i] = self.get_lowest_sell
-                    else:
-                        price.append(price)
-                    
-                prices.sort()
-            elif self.get_highest_buy <= self.get_lowest_sell:
-                for i in range(0, order_pairs):
-                    # prices.append(round(random.uniform(price, price+price*SPREAD/100), settings.PRICE_PRECISION))
-                    
-                    # or
-                    if settings.KAI_NAI:
-                        prices.append(round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION))
-                        if prices[i] < self.get_lowest_sell:
-                            prices[i] = round(random.uniform(self.get_lowest_sell, self.get_lowest_sell + self.get_lowest_sell*SPREAD/100), settings.PRICE_PRECISION)
-                    else:
-                        prices.append(price)
-
-                prices.sort()
-            
+        price = self.exchange.get_crypto_price()
+        price_fortnight = self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open']
+        if index == 1:
+            #sell
+            for i in range(0, order_pairs):
+                prices.append(price_fortnight)
         else:
-            pass
+            # buy
+            for i in range(0, order_pairs):
+                prices.append(price)
+
         print(prices)
         return prices
 
@@ -131,7 +111,6 @@ class OrderManager:
         result = self.exchange.market_status(period=1296000)
         last_fortnight_value = float(result['result']['open'])
         recent_value = float(result['result']['last'])
-        previous_value =  float(self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['last'])
         
         recent_buy_orders = self.exchange.get_recent_order_bids()['result']['orders']
         recent_sell_orders = self.exchange.get_recent_order_sells()['result']['orders']
@@ -148,34 +127,39 @@ class OrderManager:
         
         logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
         if recent_value <= settings.INPUT_LOWER_RANGE or recent_value >= settings.INPUT_UPPER_RANGE :
-            if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION :
-                if bid_amount > sell_amount or (previous_value < recent_value):
-                    print("buyer is greater than seller sell some volume")
-                    change = bid_amount - sell_amount
+            if settings.TYPE == "VOLUME":
+                    if abs(bid_amount - sell_amount)*100 / min(bid_amount, sell_amount) > settings.FLUCTUATION :
+                        if bid_amount > sell_amount:
+                            print("buyer is greater than seller sell some volume")
+                            change = abs(bid_amount - sell_amount)
+                            index = 1 # 1 for selling
+                            buy_orders = self.prepare_order(index, amount=change)
+                        elif bid_amount < sell_amount:
+                            print("seller are grater than buyer, buy some volume..")
+                            change = abs(sell_amount - bid_amount)
+                            index = 2 # 2 for buying
+                            sell_orders = self.prepare_order(index, amount=change)
+                    else:
+                        print("Volume is under Fluctuation")
+            elif settings.TYPE == "PRICE":
+                if recent_value < settings.INPUT_LOWER_RANGE:
+                    change = abs(bid_amount - sell_amount)
+                    if change == 0:
+                        change = settings.DEFAULT_CHANGE
+                    index = 2 # 2 for buying
+                    buy_orders = self.prepare_order(index, amount=change)
+                    logging.info("Recent value is less than input range Buying some amount..")
+                elif recent_value > settings.INPUT_UPPER_RANGE:
+                    change = abs(bid_amount - sell_amount)
+                    if change == 0:
+                        change = settings.DEFAULT_CHANGE
                     index = 1 # 1 for selling
                     buy_orders = self.prepare_order(index, amount=change)
-                elif bid_amount < sell_amount or (previous_value > recent_value):
-                    print("seller are grater than buyer, buy some volume..")
-                    change = sell_amount - bid_amount
-                    index = 2 # 2 for buying
-                    sell_orders = self.prepare_order(index, amount=change)
+                    logging.info("Recent value is greater than input range Selling some amount..")
                 else:
-                    # if settings.BUY_AGGRESIVELY:
-                    #     if (last_fortnight_value - recent_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-                    #         index = -1 # -1 for buying
-                    #         print("buyer are equal to seller, buying aggresively")
-                    # buy_orders.append(self.prepare_order(index, amount=settings.MAX_SPREAD))
-                    # if (recent_value - last_fortnight_value)*100/last_fortnight_value > settings.PERCENTAGE_CHANGE_FORTNIGHT
-                    #         index = 1 # 1 for selling
-                    #         print("buyer are equal to seller, buying aggresively")
-                    # buy_orders.append(self.prepare_order(index, amount=settings.BUY_AGGRESSIVE_COUNT))
-                    # else:
                     print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
                     
-                # return self.converge_orders(buy_orders, sell_orders)
-                return self.converge_orders([{'price':'0.9', 'amount':'1', 'side':1}], buy_orders)
-            else:
-                logging.DEBUG("Value of crypto is out of bound and seller volume and buyer volume is not in thhe range of bound, therefor bot can't quote")
+            return self.converge_orders(buy_orders, sell_orders)      
         
         
                 
@@ -184,7 +168,8 @@ class OrderManager:
 
     def prepare_order(self, index, amount):
         """Create an order object."""
-        orderQty = (amount / settings.MAX_ORDER_PAIRS) 
+        # change
+        orderQty = round((amount / (settings.MAX_ORDER_PAIRS**2)), 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
@@ -245,16 +230,16 @@ class OrderManager:
                     to_cancel.append(order)
                     logging.info("Amending the value of previous order")
         
-        
-        while buys_matched < len(buy_orders):
-            to_create.append(buy_orders[buys_matched])
-            buys_matched += 1
+        if buy_orders:
+            while buys_matched < len(buy_orders):
+                to_create.append(buy_orders[buys_matched])
+                buys_matched += 1
+        else:
+            while sells_matched < len(sell_orders):
+                to_create.append(sell_orders[sells_matched])
+                sells_matched += 1
 
-        while sells_matched < len(sell_orders):
-            to_create.append(sell_orders[sells_matched])
-            sells_matched += 1
-
-        print(to_create)
+        print("to:create="+str(to_create))
         if to_create:
             logging.info("Creating %d orders:" % (len(to_create)))
             for order in reversed(to_create):
@@ -388,7 +373,7 @@ class OrderManager:
         os.execv(sys.executable, [sys.executable] + sys.argv)
         
     def check_connection(self):
-        return True if len(self.exchange.get_delta()) is not None else False
+        return True if self.exchange.get_delta() else False
 
 
 

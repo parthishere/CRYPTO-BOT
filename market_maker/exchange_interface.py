@@ -72,7 +72,8 @@ class ExchangeInterface():
                 # for buyer
                 o = self.hotbit.buy(amount=order['amount'], price=order['price'])
                 o_ids.append(o['result'])
-            return o_ids
+        print("Placed Order Details"+str(o_ids))
+        return o_ids
         
     
     def get_pending_orders(self):
@@ -112,3 +113,6 @@ class ExchangeInterface():
     
     def market_status(self, period=settings.LAST_VALUE_PERIOD):
         return self.hotbit.market_status(period=period)
+
+    def get_crypto_price(self):
+        return self.hotbit.get_crypto_price()

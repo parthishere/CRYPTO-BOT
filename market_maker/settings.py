@@ -12,8 +12,14 @@ LOG_LEVEL = logging.INFO
 
 # If set to yes then bot will buy also when the amount of bid and sell will be same 
 # so the spead will increase between bidders and sellers
-BUY_AGGRESIVELY = False
+BUY_AGGRESIVELY = False # not ready yet
 
+DEFAULT_CHANGE = 10
+
+#You can set type of trading 
+# "VOLUME" type trading depends on volume in Orderbook
+# "PRICE" type trading depends on price fluctuation 
+TYPE = "VOLUME" 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR)
@@ -44,10 +50,10 @@ MIN_SPREAD = 0.01
 # Min Spread
 MAX_SPREAD = 0.5
 # In Percent means at what threshold of difference between buyers and sellers should we start buying or selling
-FLUCTUATION = 5  
+FLUCTUATION = 5  # 5%
 
 # last open value of crypto before LAST_VALUE_PERIOD seconds
-LAST_VALUE_PERIOD = 5 
+LAST_VALUE_PERIOD = 1296000 # 15 days
 
 
 # How much order size you want to put in orderbook ?
@@ -83,4 +89,3 @@ LOOP_INTERVAL = 1
 #Don't change unless and until you know which file is which
 WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py'), 'main.py']
 
-KAI_NAI = True

@@ -265,13 +265,8 @@ class Hotbit():
         }
         """
         side = 1 # 1 for sell and 2 for buy
-        self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
-        if float(self.available) < float(price)*float(amount):
-            print("dont have enough credit")
-            return {}
             
         sign_string = "amount=" + str(amount) + "&api_key=" + str(settings.API_KEY) +  "&isfee=0&market=" +  str(market) +  "&price=" + str(price) + "&side=" + str(side) + "&secret_key=" + str(settings.SECRET_KEY)
-        print ("\n\nsign_string: " + str(sign_string )  )
 
         sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
         sign = sign.upper()
@@ -284,18 +279,15 @@ class Hotbit():
             "price" : price,
             "side" : side,
             "sign": str(sign)   }
-        params = dict(api_key=settings.API_KEY, sign=sign, market=market, side=2, amount=amount, price=price, isfee=isfee)
-        response = requests.post(ORDER_PUT_LIMIT, data=body, headers=HEADERS)
-        return response.json()
+        
+        response = requests.post(ORDER_PUT_LIMIT, data=body, headers=HEADERS).json()
+        print(response)
+        return response
     
     
     @authentication_required
     def buy(self, amount=0, price=0, market=settings.MARKET, isfee=settings.ISFEE):
         side = 2 # 1 for sell and 2 for buy
-        self.available = self.get_balance_query().get('result').get(settings.ASSET).get('available')
-        if float(self.available) < float(price)*float(amount):
-            print("dont have enough credit")
-            return {}
         
         sign_string = "amount=" + str(amount) + "&api_key=" + str(settings.API_KEY) +  "&isfee=0&market=" +  str(market) +  "&price=" + str(price) + "&side=" + str(side) + "&secret_key=" + str(settings.SECRET_KEY)
         print ("\n\nsign_string: " + str(sign_string )  )
@@ -312,8 +304,9 @@ class Hotbit():
             "side" : side,
             "sign": str(sign)   }
         params = dict(api_key=settings.API_KEY, sign=sign, market=market, side=2, amount=amount, price=price, isfee=isfee)
-        response = requests.post(ORDER_PUT_LIMIT, data=body, headers=HEADERS)
-        return response.json()
+        response = requests.post(ORDER_PUT_LIMIT, data=body, headers=HEADERS).json()
+        print(response)
+        return response
     
     
     @authentication_required
