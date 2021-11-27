@@ -37,7 +37,7 @@ class OrderManager:
         logging.info("highest bid = %f", self.get_highest_buy)
         logging.info("lowest sell = %f", self.get_lowest_sell)
         
-        # self.reset()
+        self.reset()
 
     def reset(self):
         self.exchange.cancel_all_orders()
@@ -50,9 +50,9 @@ class OrderManager:
         """Print the current MM status."""
 
         margin = self.exchange.get_delta()
-        position = self.exchange.get_position()
         self.running_qty = float(self.exchange.get_delta())
         logging.info("Delta : %s" % str(self.exchange.get_position()))
+        logging.info("Position in CTS: %s" % str(self.exchange.get_position))
         # logging.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logging.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
@@ -61,6 +61,7 @@ class OrderManager:
         # hard coded
         logging.info("Pending orders : %s" % str(self.exchange.get_pending_orders().get('result').get("CTSUSDT").get('records')))
         logging.info("Trading Type : %s" % settings.TYPE)
+        logging.info("Current Crypto Price: %f" %self.exchange.get_crypto_price())
         
         
 
@@ -109,7 +110,6 @@ class OrderManager:
         # for fifteen days seconds are 15*24*60*60 = 1296000
         period = 1296000
         result = self.exchange.market_status(period=1296000)
-        last_fortnight_value = float(result['result']['open'])
         recent_value = float(result['result']['last'])
         
         recent_buy_orders = self.exchange.get_recent_order_bids()['result']['orders']
@@ -173,10 +173,12 @@ class OrderManager:
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
+        position = prices[0] * orderQty
         for i in range(0, settings.MAX_ORDER_PAIRS):
             
             orders.append({'price': str(prices[i]), 'amount': str(orderQty), 'side': index})
-
+            
+        logging.info("\nContract that will be traded in this run : %s" % str(position))
         # print(orders)
         return orders
 
@@ -187,7 +189,6 @@ class OrderManager:
 
         # tickLog = self.exchange.get_instrument()['tickLog']
         to_amend = []
-        repeated_order = []
         to_create = []
         to_cancel = []
         buys_matched = 0
@@ -307,8 +308,6 @@ class OrderManager:
         # Sanity check:
         # if self.get_price_offset(-1) >= ticker["sell"] or self.get_price_offset(1) <= ticker["buy"]:
         #     logging.error("Buy: %s, Sell: %s" % (self.start_position_buy, self.start_position_sell))
-        #     logging.error("First buy position: %s\nBitMEX Best Ask: %s\nFirst sell position: %s\nBitMEX Best Bid: %s" %
-        #                  (self.get_price_offset(-1), ticker["sell"], self.get_price_offset(1), ticker["buy"]))
         #     logging.error("Sanity check failed, exchange data is inconsistent")
         #     self.exit()
 
@@ -317,11 +316,13 @@ class OrderManager:
             logging.warning("Long delta limit exceeded")
             logging.warning("Current Position: %.f, Maximum Position: %.f" %
                         (self.exchange.get_delta(), settings.MAX_POSITION))
+            self.exit()
 
         if self.short_position_limit_exceeded():
             logging.warning("Short delta limit exceeded")
             logging.warning("Current Position: %.f, Minimum Position: %.f" %
                         (self.exchange.get_delta(), settings.MIN_POSITION))
+            self.exit()
         
         if self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records') is not None:
             if len(self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records')) > settings.MAX_PENDING_ORDERS:
