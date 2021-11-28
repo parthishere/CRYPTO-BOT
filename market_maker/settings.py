@@ -19,7 +19,7 @@ DEFAULT_CHANGE = 10
 #You can set type of trading 
 # "VOLUME" type trading depends on volume in Orderbook
 # "PRICE" type trading depends on price fluctuation 
-TYPE = "VOLUME" 
+TYPE = "PRICE" 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 print(BASE_DIR)
@@ -64,7 +64,7 @@ MAX_ORDER_PAIRS = 6
 MAX_PENDING_ORDERS = 100
 
 CHECK_POSITION_LIMITS = True
-MAX_POSITION = 0
+MAX_POSITION = 20000
 MIN_POSITION = 0
 
 # How much price after decimal point.

@@ -51,8 +51,8 @@ class OrderManager:
 
         margin = self.exchange.get_delta()
         self.running_qty = float(self.exchange.get_delta())
-        logging.info("Delta : %s" % str(self.exchange.get_position()))
-        logging.info("Position in CTS: %s" % str(self.exchange.get_position))
+        logging.info("Delta : %s" % str(self.exchange.get_delta()))
+        logging.info("Position in CTS: %s" % str(self.exchange.get_position()))
         # logging.info("Current Contract Position: %d" % self.running_qty)
         if settings.CHECK_POSITION_LIMITS:
             logging.info("Position limits: %d/%d" % (settings.MIN_POSITION, settings.MAX_POSITION))
@@ -75,16 +75,16 @@ class OrderManager:
             SPREAD = settings.MAX_SPREAD
         else:
             SPREAD = settings.MIN_SPREAD
-        price = self.exchange.get_crypto_price()
-        price_fortnight = self.exchange.market_status(period=settings.LAST_VALUE_PERIOD)['result']['open']
+        price = self.recent_price
+        
         if index == 1:
-            #sell
+            # sell
             for i in range(0, order_pairs):
-                prices.append(price_fortnight)
+                prices.append(settings.INPUT_UPPER_RANGE)
         else:
             # buy
             for i in range(0, order_pairs):
-                prices.append(price)
+                prices.append(settings.INPUT_LOWER_RANGE)
 
         print(prices)
         return prices
@@ -108,9 +108,9 @@ class OrderManager:
         #     if not self.short_position_limit_exceeded():
         #         sell_orders.append(self.prepare_order(i))
         # for fifteen days seconds are 15*24*60*60 = 1296000
-        period = 1296000
-        result = self.exchange.market_status(period=1296000)
-        recent_value = float(result['result']['last'])
+        # period = 1296000
+        # result = self.exchange.market_status(period=1296000)
+        self.recent_price = recent_value = self.exchange.get_crypto_price()
         
         recent_buy_orders = self.exchange.get_recent_order_bids()['result']['orders']
         recent_sell_orders = self.exchange.get_recent_order_sells()['result']['orders']
@@ -133,28 +133,33 @@ class OrderManager:
                             print("buyer is greater than seller sell some volume")
                             change = abs(bid_amount - sell_amount)
                             index = 1 # 1 for selling
-                            buy_orders = self.prepare_order(index, amount=change)
+                            change_in_price = (self.recent_price - settings.INPUT_UPPER_RANGE)
+                            buy_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
                         elif bid_amount < sell_amount:
                             print("seller are grater than buyer, buy some volume..")
                             change = abs(sell_amount - bid_amount)
+                            change_in_price = (self.recent_price - settings.INPUT_LOWER_RANGE)
                             index = 2 # 2 for buying
-                            sell_orders = self.prepare_order(index, amount=change)
+                            sell_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
                     else:
                         print("Volume is under Fluctuation")
+                        
             elif settings.TYPE == "PRICE":
                 if recent_value < settings.INPUT_LOWER_RANGE:
                     change = abs(bid_amount - sell_amount)
                     if change == 0:
                         change = settings.DEFAULT_CHANGE
                     index = 2 # 2 for buying
-                    buy_orders = self.prepare_order(index, amount=change)
+                    change_in_price = (self.recent_price - settings.INPUT_LOWER_RANGE)
+                    buy_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
                     logging.info("Recent value is less than input range Buying some amount..")
                 elif recent_value > settings.INPUT_UPPER_RANGE:
                     change = abs(bid_amount - sell_amount)
                     if change == 0:
                         change = settings.DEFAULT_CHANGE
                     index = 1 # 1 for selling
-                    buy_orders = self.prepare_order(index, amount=change)
+                    change_in_price = (self.recent_price - settings.INPUT_UPPER_RANGE)
+                    buy_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
                     logging.info("Recent value is greater than input range Selling some amount..")
                 else:
                     print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
@@ -166,19 +171,21 @@ class OrderManager:
 
         
 
-    def prepare_order(self, index, amount):
+    def prepare_order(self, index, amount, change_in_price):
         """Create an order object."""
         # change
-        orderQty = round((amount / (settings.MAX_ORDER_PAIRS**2)), 2)
+        orderQty = round((amount / (settings.MAX_ORDER_PAIRS)*change_in_price), 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
-        position = prices[0] * orderQty
+        position = prices[0] * orderQty * settings.MAX_ORDER_PAIRS
         for i in range(0, settings.MAX_ORDER_PAIRS):
-            
             orders.append({'price': str(prices[i]), 'amount': str(orderQty), 'side': index})
             
-        logging.info("\nContract that will be traded in this run : %s" % str(position))
+        if index is 1:
+            logging.info("\nContract that will be traded in this run : %s USDT, Current USDT position: %s " % (str(position), str(self.exchange.get_position())))
+        else:
+            logging.info("\nContract that will be traded in this run : %s USDT, Current USDT position: %s " % (str(position), str(self.exchange.get_position())))
         # print(orders)
         return orders
 
@@ -343,7 +350,7 @@ class OrderManager:
         logging.info("Shutting down. All open orders will be cancelled.")
         try:
             self.exchange.cancel_all_orders()
-            self.exchange.hotbit.exit()
+            # self.exchange.hotbit.exit()
         except AuthenticationError as e:
             logging.info("Was not authenticated; could not cancel orders.")
         except Exception as e:
