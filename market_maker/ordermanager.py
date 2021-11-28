@@ -183,9 +183,11 @@ class OrderManager:
             orders.append({'price': str(prices[i]), 'amount': str(orderQty), 'side': index})
             
         if index is 1:
-            logging.info("\nContract that will be traded in this run : %s USDT, Current USDT position: %s " % (str(position), str(self.exchange.get_position())))
+            logging.info("\nContract that will be traded in this run : %s USDT, Current position: %s " % (str(position), str(self.exchange.get_position())))
+            logging.info("\nCTS that will be sold this trade: %s" % str(orderQty * settings.MAX_ORDER_PAIRS))
         else:
-            logging.info("\nContract that will be traded in this run : %s USDT, Current USDT position: %s " % (str(position), str(self.exchange.get_position())))
+            logging.info("\nContract that will be traded in this run : %s USDT, Current position: %s " % (str(position), str(self.exchange.get_position())))
+            logging.ifo("\nCTS that will be bought this trade: %s" % str(orderQty * settings.MAX_ORDER_PAIRS))
         # print(orders)
         return orders
 
