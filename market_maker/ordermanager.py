@@ -175,13 +175,13 @@ class OrderManager:
     def prepare_order(self, index, amount, change_in_price):
         """Create an order object."""
         # change
-        orderQty = round((amount / settings.MAX_ORDER_PAIRS)*change_in_price, 2)
+        orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
         position = prices[0] * orderQty * settings.MAX_ORDER_PAIRS
         for i in range(0, settings.MAX_ORDER_PAIRS):
-            orders.append({'price': str(prices[i]), 'amount': str(orderQty), 'side': index})
+            orders.append({'price': str(prices[i]), 'amount': str(abs(orderQty)), 'side': index})
             
         if index is 1:
             logging.info("\nContract that will be traded in this run : %s USDT, Current position: %s " % (str(position), str(self.exchange.get_position())))

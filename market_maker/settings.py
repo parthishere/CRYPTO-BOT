@@ -2,7 +2,7 @@ import os, hashlib
 from os.path import join
 import dotenv
 from pathlib import Path
-import logging
+import logging, psycopg2
 
 # For Debugging purpose
 DEBUG = True
@@ -32,10 +32,11 @@ SECRET_KEY = os.environ['secret_key']
 API_KEY = os.environ['api_key']
 ASSETS = os.environ['assets'] or ["CTS/USDT"]
 
+# Default value
 # How much lower crypto price may go
-INPUT_LOWER_RANGE = 2.1000
+INPUT_LOWER_RANGE = 2.0000
 # How much higher price may go
-INPUT_UPPER_RANGE = 2.2200
+INPUT_UPPER_RANGE = 2.100
 
 # "BTC", "ETH" etc.
 ASSET = "CTS"
@@ -89,3 +90,23 @@ LOOP_INTERVAL = 1
 #Don't change unless and until you know which file is which
 WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py'), 'main.py']
 
+
+try:
+    conn = psycopg2.connect(database=os.environ['DATABASE_NAME'], user=os.environ['DATABASE_USER'], password=os.environ['DATABASE_PASSWORD'], host=os.environ["DATABASE_HOST"], port="5432")
+
+    cur = conn.cursor()
+    cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
+    print("The number of parts: ", cur.rowcount)
+    row = cur.fetchall().pop()
+    print(row)
+    if cur.rowcount == row[0]:
+        INPUT_LOWER_RANGE = round(row[1], 4)
+        INPUT_UPPER_RANGE = round(row[2], 4)
+        print(INPUT_LOWER_RANGE, INPUT_UPPER_RANGE)
+        
+except (Exception, psycopg2.DatabaseError) as error:
+        print(error)
+
+finally:
+    if conn is not None:
+        conn.close()

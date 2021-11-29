@@ -16,7 +16,7 @@ hb = hotbit.Hotbit()
 #     )
 
 
-# print(hb.order_cancel(order_id=67259747046))
+# print(hb.order_cancel(order_id=68771353282))
 # print(hb.bulk_cancel([67260259658, 67260257682, 67260199569]))
 
 # print(ei.get_pending_orders().get('result').get("CTSUSDT").get('records'))
