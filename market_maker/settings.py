@@ -33,9 +33,9 @@ API_KEY = os.environ['api_key']
 ASSETS = os.environ['assets'] or ["CTS/USDT"]
 
 # How much lower crypto price may go
-INPUT_LOWER_RANGE = 1.8000
+INPUT_LOWER_RANGE = 2.1000
 # How much higher price may go
-INPUT_UPPER_RANGE = 1.85
+INPUT_UPPER_RANGE = 2.2200
 
 # "BTC", "ETH" etc.
 ASSET = "CTS"
