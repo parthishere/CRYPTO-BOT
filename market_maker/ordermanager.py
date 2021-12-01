@@ -175,7 +175,8 @@ class OrderManager:
     def prepare_order(self, index, amount, change_in_price):
         """Create an order object."""
         # change
-        orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
+        # orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
+        orderQty = round((amount/settings.MAX_ORDER_PAIRS)*(change_in_price**2), 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
@@ -189,6 +190,9 @@ class OrderManager:
         else:
             logging.info("\nContract that will be traded in this run : %s USDT, Current position: %s " % (str(position), str(self.exchange.get_position())))
             logging.info("\nCTS that will be bought this trade: %s" % str(orderQty * settings.MAX_ORDER_PAIRS))
+            if self.check_usdt(position):
+                logging.error("Not enough Balance, Resetting bot")
+                self.reset()
         # print(orders)
         return orders
 
@@ -298,6 +302,11 @@ class OrderManager:
         position = float(self.exchange.get_delta())
         return position >= settings.MAX_POSITION
     
+    def check_usdt(self, price):
+        position = float(self.exchange.get_position()['USDT']['available'])
+        if price > position:
+            return False
+        return True
 
     ###
     # Sanity
