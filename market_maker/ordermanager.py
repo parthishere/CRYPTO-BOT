@@ -34,9 +34,7 @@ class OrderManager:
         
         self.get_lowest_sell = self.exchange.get_lowest_sell()
         self.get_highest_buy = self.exchange.get_highest_buy()
-        logging.info("highest bid = %f", self.get_highest_buy)
-        logging.info("lowest sell = %f", self.get_lowest_sell)
-        logging.info("Input Range: %f - %fs" % (settings.INPUT_LOWER_RANGE, settings.INPUT_UPPER_RANGE))
+        
         
         self.reset()
 
@@ -52,6 +50,9 @@ class OrderManager:
 
         margin = self.exchange.get_delta()
         self.running_qty = float(self.exchange.get_delta())
+        logging.info("highest bid = %f", self.get_highest_buy)
+        logging.info("lowest sell = %f", self.get_lowest_sell)
+        logging.info("Input Range: %f - %fs" % (settings.INPUT_LOWER_RANGE, settings.INPUT_UPPER_RANGE))
         logging.info("Delta : %s" % str(self.exchange.get_delta()))
         logging.info("Position in CTS: %s" % str(self.exchange.get_position()))
         # logging.info("Current Contract Position: %d" % self.running_qty)
@@ -96,7 +97,7 @@ class OrderManager:
 
     def place_orders(self):
         """Create order items for use in convergence."""
-
+        
         buy_orders = []
         sell_orders = []
         # Create orders from the outside in. This is intentional - let's say the inner order gets taken;
@@ -374,7 +375,7 @@ class OrderManager:
         while True:
             sys.stdout.write("-----\n")
             sys.stdout.flush()
-
+            settings.get_input_range()
             self.check_file_change()
             sleep(settings.LOOP_INTERVAL)
 

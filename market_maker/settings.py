@@ -98,9 +98,8 @@ def get_input_range():
 
         cur = conn.cursor()
         cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
-        print("The number of parts: ", cur.rowcount)
+        # print("The number of parts: ", cur.rowcount)
         row = cur.fetchall().pop()
-        print(row)
         if cur.rowcount == row[0]:
             INPUT_LOWER_RANGE = round(row[1], 4)
             INPUT_UPPER_RANGE = round(row[2], 4)
