@@ -290,7 +290,6 @@ class Hotbit():
         side = 2 # 1 for sell and 2 for buy
         
         sign_string = "amount=" + str(amount) + "&api_key=" + str(settings.API_KEY) +  "&isfee=0&market=" +  str(market) +  "&price=" + str(price) + "&side=" + str(side) + "&secret_key=" + str(settings.SECRET_KEY)
-        print ("\n\nsign_string: " + str(sign_string )  )
 
         sign = hashlib.md5(sign_string.encode('utf-8')).hexdigest()
         sign = sign.upper()

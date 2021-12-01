@@ -19,7 +19,7 @@ class OrderManager:
         self.exchange = ExchangeInterface()
         # Once exchange is created, register exit handler that will always cancel orders
         # on any error.
-
+        settings.get_input_range()
         logging.info("Using symbol %s." % self.exchange.symbol)
 
         logging.info("Order Manager initializing, connecting to BitMEX. Live run: executing real trades.")

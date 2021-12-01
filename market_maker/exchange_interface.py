@@ -99,7 +99,7 @@ class ExchangeInterface():
         to_cancel = []
         if orders:
             try:
-                return self.hotbit.bulk_cancel([order[id] for order in orders])
+                return self.hotbit.bulk_cancel([order['id'] for order in orders])
             except Exception as e:
                 print(e)
                 return e

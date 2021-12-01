@@ -91,22 +91,24 @@ LOOP_INTERVAL = 1
 WATCHED_FILES = [join('market_maker', 'exchange_interface.py'), join('market_maker', 'hotbit.py'), join('market_maker', 'ordermanager.py'), join('market_maker' ,'settings.py'), 'main.py']
 
 
-try:
-    conn = psycopg2.connect(database=os.environ['DATABASE_NAME'], user=os.environ['DATABASE_USER'], password=os.environ['DATABASE_PASSWORD'], host=os.environ["DATABASE_HOST"], port="5432")
+def get_input_range():
+    global INPUT_LOWER_RANGE, INPUT_UPPER_RANGE
+    try:
+        conn = psycopg2.connect(database=os.environ['DATABASE_NAME'], user=os.environ['DATABASE_USER'], password=os.environ['DATABASE_PASSWORD'], host=os.environ["DATABASE_HOST"], port="5432")
 
-    cur = conn.cursor()
-    cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
-    print("The number of parts: ", cur.rowcount)
-    row = cur.fetchall().pop()
-    print(row)
-    if cur.rowcount == row[0]:
-        INPUT_LOWER_RANGE = round(row[1], 4)
-        INPUT_UPPER_RANGE = round(row[2], 4)
-        print(INPUT_LOWER_RANGE, INPUT_UPPER_RANGE)
-        
-except (Exception, psycopg2.DatabaseError) as error:
-        print(error)
+        cur = conn.cursor()
+        cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
+        print("The number of parts: ", cur.rowcount)
+        row = cur.fetchall().pop()
+        print(row)
+        if cur.rowcount == row[0]:
+            INPUT_LOWER_RANGE = round(row[1], 4)
+            INPUT_UPPER_RANGE = round(row[2], 4)
+            print(INPUT_LOWER_RANGE, INPUT_UPPER_RANGE)
+            
+    except (Exception, psycopg2.DatabaseError) as error:
+            print(error)
 
-finally:
-    if conn is not None:
-        conn.close()
+    finally:
+        if conn is not None:
+            conn.close()
