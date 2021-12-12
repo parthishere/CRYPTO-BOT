@@ -193,7 +193,7 @@ class OrderManager:
             logging.info("\nCTS that will be bought this trade: %s" % str(orderQty * settings.MAX_ORDER_PAIRS))
             if self.check_usdt(position):
                 logging.error("Not enough Balance, Resetting bot")
-                self.reset()
+                # self.reset()
         # print(orders)
         return orders
 
