@@ -377,6 +377,8 @@ class OrderManager:
             sys.stdout.flush()
             settings.get_input_range()
             self.check_file_change()
+            
+            # sleep for LOOP INTERVAL seconds
             sleep(settings.LOOP_INTERVAL)
 
             # This will restart on very short downtime, but if it's longer,
