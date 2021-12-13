@@ -34,9 +34,9 @@ ASSETS = os.environ['assets'] or ["CTS/USDT"]
 
 # Default value
 # How much lower crypto price may go
-INPUT_LOWER_RANGE = 2.0000
+INPUT_LOWER_RANGE = None
 # How much higher price may go
-INPUT_UPPER_RANGE = 2.100
+INPUT_UPPER_RANGE = None
 
 # "BTC", "ETH" etc.
 ASSET = "CTS"
@@ -100,9 +100,16 @@ def get_input_range():
         cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
         # print("The number of parts: ", cur.rowcount)
         row = cur.fetchall().pop()
-        if cur.rowcount == row[0]:
-            INPUT_LOWER_RANGE = round(row[1], 4)
-            INPUT_UPPER_RANGE = round(row[2], 4)
+        if INPUT_UPPER_RANGE and INPUT_LOWER_RANGE:
+            if cur.rowcount == row[0]:
+                INPUT_LOWER_RANGE = float(round(row[1], 4))
+                INPUT_UPPER_RANGE = float(round(row[2], 4))
+                if (INPUT_LOWER_RANGE <= 0 or INPUT_UPPER_RANGE <= 0) or (isinstance(INPUT_LOWER_RANGE, float) == float or isinstance(INPUT_UPPER_RANGE, float)):
+                    cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
+                    row = cur.fetchall().pop(-2)
+                    INPUT_LOWER_RANGE = float(round(row[1], 4))
+                    INPUT_UPPER_RANGE = float(round(row[2], 4))
+            
             print(INPUT_LOWER_RANGE, INPUT_UPPER_RANGE)
             
     except (Exception, psycopg2.DatabaseError) as error:

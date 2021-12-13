@@ -1,6 +1,6 @@
 import requests
 from pathlib import Path
-import dotenv, hashlib, os, datetime, time
+import hashlib, os, datetime, time
 
 from market_maker import settings
 

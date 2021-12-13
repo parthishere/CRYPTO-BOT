@@ -161,7 +161,7 @@ class OrderManager:
                         change = settings.DEFAULT_CHANGE
                     index = 1 # 1 for selling
                     change_in_price = (self.recent_price - settings.INPUT_UPPER_RANGE)
-                    buy_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
+                    sell_orders = self.prepare_order(index, amount=change, change_in_price=change_in_price)
                     logging.info("Recent value is greater than input range Selling some amount..")
                 else:
                     print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
