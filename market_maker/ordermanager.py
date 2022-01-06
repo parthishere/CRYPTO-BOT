@@ -100,18 +100,6 @@ class OrderManager:
         
         buy_orders = []
         sell_orders = []
-        # Create orders from the outside in. This is intentional - let's say the inner order gets taken;
-        # then we match orders from the outside in, ensuring the fewest number of orders are amended and only
-        # a new order is created in the inside. If we did it inside-out, all orders would be amended
-        # down and a new order would be created at the outside.
-        # for i in reversed(range(1, settings.ORDER_PAIRS + 1)):
-        #     if not self.long_position_limit_exceeded():
-        #         buy_orders.append(self.prepare_order(-i))
-        #     if not self.short_position_limit_exceeded():
-        #         sell_orders.append(self.prepare_order(i))
-        # for fifteen days seconds are 15*24*60*60 = 1296000
-        # period = 1296000
-        # result = self.exchange.market_status(period=1296000)
         self.recent_price = recent_value = self.exchange.get_crypto_price()
         
         recent_buy_orders = self.exchange.get_recent_order_bids()['result']['orders']
@@ -177,7 +165,7 @@ class OrderManager:
         """Create an order object."""
         # change
         # orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
-        orderQty = round((amount/settings.MAX_ORDER_PAIRS**2)*(change_in_price**2), 2)
+        orderQty = (amount/settings.MAX_ORDER_PAIRS**2)*(change_in_price**2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
@@ -316,22 +304,7 @@ class OrderManager:
     def perform_check(self):
         """Perform checks before placing orders."""
 
-        # Check if OB is empty - if so, can't quote.
-        # self.exchange.check_if_orderbook_empty()
 
-        # # Ensure market is still open.
-        # self.exchange.check_market_open()
-
-        # Get ticker, which sets price offsets and prints some debugging info.
-        # ticker = self.get_ticker()
-
-        # Sanity check:
-        # if self.get_price_offset(-1) >= ticker["sell"] or self.get_price_offset(1) <= ticker["buy"]:
-        #     logging.error("Buy: %s, Sell: %s" % (self.start_position_buy, self.start_position_sell))
-        #     logging.error("Sanity check failed, exchange data is inconsistent")
-        #     self.exit()
-
-        # Messaging if the position limits are reached
         if self.long_position_limit_exceeded():
             logging.warning("Long delta limit exceeded")
             logging.warning("Current Position: %.f, Maximum Position: %.f" %
