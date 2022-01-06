@@ -34,7 +34,7 @@ class OrderManager:
         
         self.get_lowest_sell = self.exchange.get_lowest_sell()
         self.get_highest_buy = self.exchange.get_highest_buy()
-        
+
         
         self.reset()
 
@@ -52,7 +52,7 @@ class OrderManager:
         self.running_qty = float(self.exchange.get_delta())
         logging.info("highest bid = %f", self.get_highest_buy)
         logging.info("lowest sell = %f", self.get_lowest_sell)
-        logging.info("Input Range: %f - %fs" % (settings.INPUT_LOWER_RANGE, settings.INPUT_UPPER_RANGE))
+        logging.info("Input Range: %f - %f" % (settings.INPUT_LOWER_RANGE, settings.INPUT_UPPER_RANGE))
         logging.info("Delta : %s" % str(self.exchange.get_delta()))
         logging.info("Position in CTS: %s" % str(self.exchange.get_position()))
         # logging.info("Current Contract Position: %d" % self.running_qty)
@@ -126,7 +126,7 @@ class OrderManager:
         for result in recent_sell_orders:
             if result['side'] == 1:
                 sell_amount += float(result['amount'])
-        
+
         logging.info("bid amount = %d , sell amount = %d",bid_amount ,sell_amount)
         if recent_value <= settings.INPUT_LOWER_RANGE or recent_value >= settings.INPUT_UPPER_RANGE :
             if settings.TYPE == "VOLUME":
@@ -165,19 +165,19 @@ class OrderManager:
                     logging.info("Recent value is greater than input range Selling some amount..")
                 else:
                     print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
-                    
-            return self.converge_orders(buy_orders, sell_orders)      
-        
-        
                 
+            return self.converge_orders(buy_orders, sell_orders)
 
-        
+
+
+
+
 
     def prepare_order(self, index, amount, change_in_price):
         """Create an order object."""
         # change
         # orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
-        orderQty = round((amount/settings.MAX_ORDER_PAIRS)*(change_in_price**2), 2)
+        orderQty = round((amount/settings.MAX_ORDER_PAIRS**2)*(change_in_price**2), 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
@@ -191,9 +191,9 @@ class OrderManager:
         else:
             logging.info("\nContract that will be traded in this run : %s USDT, Current position: %s " % (str(position), str(self.exchange.get_position())))
             logging.info("\nCTS that will be bought this trade: %s" % str(orderQty * settings.MAX_ORDER_PAIRS))
-            if self.check_usdt(position):
+            if self.check_usdt(float(position)):
                 logging.error("Not enough Balance, Resetting bot")
-                # self.reset()
+                self.reset()
         # print(orders)
         return orders
 
@@ -306,8 +306,8 @@ class OrderManager:
     def check_usdt(self, price):
         position = float(self.exchange.get_position()['USDT']['available'])
         if price > position:
-            return False
-        return True
+            return True
+        return False
 
     ###
     # Sanity

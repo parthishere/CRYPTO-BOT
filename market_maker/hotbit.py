@@ -24,6 +24,7 @@ MARKET_KLINE = "https://api.hotbit.io/api/v1/market.kline" # Parameters required
 MARKET_STATUS = "https://api.hotbit.io/api/v1/market.status" # obtain the latest status of the market during the designated period of time in the past,l such as latest range of increase and decline, trading volume, highest/lowest price etc. # para required
 MARKET_24_HR = "https://api.hotbit.io/api/v1/market.status24h" # obtain today's market status 
 MARKET_SUMMERY = "https://api.hotbit.io/api/v1/market.summary" # market summary
+MARKET_SUMMERY_TODAY = "https://api.hotbit.io/api/v1/market.status_today" # 24H SUMMERY OF MARKET
 
 ALLTICKER = "https://api.hotbit.io/api/v1/allticker" # obtain the latest trading informnation of all transaction pairs in the market
 
@@ -104,6 +105,29 @@ class Hotbit():
         if not market:
             market = settings.MARKET
         response = requests.get("{}?market={}&period={}".format(MARKET_STATUS, market, period))
+        return response.json()
+        
+    def market_status_24h(self, market=None):
+        """
+        Response:
+        {
+            "error": null,
+            "result": {
+                "period": 10,
+                "last": "0.0743",
+                "open": "0.074162",
+                "close": "0.0743",
+                "high": "0.0743",
+                "low": "0.074162",
+                "volume": "0.314",
+                "deal": "0.023315531"
+            },
+            "id": 1521169247
+        }
+        """
+        if not market:
+            market = settings.MARKET
+        response = requests.get("{}?market={}".format(MARKET_SUMMERY_TODAY, market))
         return response.json()
         
     def market_summery(self, markets=None):

@@ -116,3 +116,10 @@ class ExchangeInterface():
 
     def get_crypto_price(self):
         return self.hotbit.get_crypto_price()
+    
+    def get_market_status_today(self, market=None):
+        return self.hotbit.market_status_24h()
+    
+    def get_24h_volume(self):
+        return self.get_market_status_today()['result']['volume']
+        

@@ -14,7 +14,9 @@ LOG_LEVEL = logging.INFO
 # so the spead will increase between bidders and sellers
 BUY_AGGRESIVELY = False # not ready yet
 
-DEFAULT_CHANGE = 10
+# if the price is in the range than there will be continuous trade 
+# , and the amount that will be traded in the continuous will be default change 
+DEFAULT_CHANGE = 2
 
 #You can set type of trading 
 # "VOLUME" type trading depends on volume in Orderbook
@@ -100,11 +102,11 @@ def get_input_range():
         cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
         # print("The number of parts: ", cur.rowcount)
         row = cur.fetchall().pop()
-        if INPUT_UPPER_RANGE and INPUT_LOWER_RANGE:
+        if not (INPUT_UPPER_RANGE or INPUT_LOWER_RANGE):
             if cur.rowcount == row[0]:
                 INPUT_LOWER_RANGE = float(round(row[1], 4))
                 INPUT_UPPER_RANGE = float(round(row[2], 4))
-                if (INPUT_LOWER_RANGE <= 0 or INPUT_UPPER_RANGE <= 0) or (isinstance(INPUT_LOWER_RANGE, float) == float or isinstance(INPUT_UPPER_RANGE, float)):
+                if (INPUT_LOWER_RANGE <= 0 or INPUT_UPPER_RANGE <= 0) or (not isinstance(INPUT_LOWER_RANGE, float) or not isinstance(INPUT_UPPER_RANGE, float)):
                     cur.execute("SELECT id, min_lower_bound, max_upper_bound FROM app_cryptomodel ORDER BY id")
                     row = cur.fetchall().pop(-2)
                     INPUT_LOWER_RANGE = float(round(row[1], 4))
