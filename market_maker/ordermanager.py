@@ -153,6 +153,7 @@ class OrderManager:
                     logging.info("Recent value is greater than input range Selling some amount..")
                 else:
                     print("SELLER ARE EQUAL TO BUYER.. NOTHING TO DO")
+                    return None
                 
             return self.converge_orders(buy_orders, sell_orders)
 
@@ -165,7 +166,7 @@ class OrderManager:
         """Create an order object."""
         # change
         # orderQty = round((amount / settings.MAX_ORDER_PAIRS**2)*change_in_price, 2)
-        orderQty = (amount/settings.MAX_ORDER_PAIRS**2)*(change_in_price**2)
+        orderQty = round((amount/settings.MAX_ORDER_PAIRS**2)*(change_in_price**2), 2)
         orders = []
         
         prices = self.get_price_offset(index, settings.MAX_ORDER_PAIRS)
@@ -317,9 +318,9 @@ class OrderManager:
                         (self.exchange.get_delta(), settings.MIN_POSITION))
             self.exit()
         
-        if self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records') is not None:
-            if len(self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records')) > settings.MAX_PENDING_ORDERS:
-                logging.warning("Pending Order limit exceeded")
+        # if self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records') is not None:
+        #     if len(self.exchange.get_pending_orders().get('result').get('CTSUSDT').get('records')) > settings.MAX_PENDING_ORDERS:
+        #         logging.warning("Pending Order limit exceeded")
 
     ###########
     # Running #
